@@ -78,6 +78,86 @@ export default function MemoryCorner({ user, onBack }) {
   const [sicknessLogs, setSicknessLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [dbError, setDbError] = useState(null);
+  const [visitLogs, setVisitLogs] = useState([]);
+
+  // Helper to parse user agent for admin view
+  const parseDeviceFromUA = (ua) => {
+    if (!ua) return 'Không rõ thiết bị';
+    let device = 'Máy tính 💻';
+    if (/mobile/i.test(ua)) device = 'Điện thoại 📱';
+    else if (/tablet/i.test(ua) || /ipad/i.test(ua)) device = 'M.tính bảng 📟';
+    
+    let browser = 'Trình duyệt';
+    if (/chrome/i.test(ua) && !/edge/i.test(ua) && !/opr/i.test(ua)) browser = 'Chrome';
+    else if (/safari/i.test(ua) && !/chrome/i.test(ua)) browser = 'Safari';
+    else if (/firefox/i.test(ua)) browser = 'Firefox';
+    else if (/edge/i.test(ua)) browser = 'Edge';
+    
+    let os = 'Hệ điều hành';
+    if (/windows/i.test(ua)) os = 'Windows';
+    else if (/macintosh|mac os/i.test(ua)) os = 'macOS';
+    else if (/android/i.test(ua)) os = 'Android';
+    else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+    
+    return `${device} (${browser} - ${os})`;
+  };
+
+  // Helper to compute stats for admin view
+  const getVisitStats = () => {
+    const stats = {};
+    
+    visitLogs.forEach(log => {
+      // ICT time (GMT+7)
+      const dateObj = new Date(log.timestamp);
+      const ictMs = dateObj.getTime() + (7 * 60 * 60 * 1000);
+      const ictDate = new Date(ictMs);
+      
+      const year = ictDate.getUTCFullYear();
+      const month = String(ictDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(ictDate.getUTCDate()).padStart(2, '0');
+      
+      const monthKey = `${month}/${year}`;
+      const dayKey = `${day}/${month}/${year}`;
+      
+      if (!stats[monthKey]) {
+        stats[monthKey] = {
+          total: 0,
+          days: {}
+        };
+      }
+      
+      stats[monthKey].total += 1;
+      stats[monthKey].days[dayKey] = (stats[monthKey].days[dayKey] || 0) + 1;
+    });
+    
+    return stats;
+  };
+
+  // Tự động ghi nhận lượt truy cập của thành viên khác
+  useEffect(() => {
+    if (user && ALLOWED_COUPLE_EMAILS.length > 0) {
+      const adminEmail = ALLOWED_COUPLE_EMAILS[0];
+      const isUserAdmin = user.email === adminEmail;
+      
+      // Chỉ ghi nhận lượt truy cập của các thành viên còn lại (không phải admin)
+      if (!isUserAdmin && ALLOWED_COUPLE_EMAILS.includes(user.email)) {
+        const visitLogged = sessionStorage.getItem('tm_visit_logged');
+        if (!visitLogged) {
+          sessionStorage.setItem('tm_visit_logged', 'true');
+          
+          supabase.db.saveRSVP('default', {
+            guest_name: user.email,
+            status: 'member_visit',
+            guest_count: 1,
+            side: 'both',
+            wish: navigator.userAgent || 'Web Browser'
+          }).catch(err => {
+            console.error('Failed to log visit:', err);
+          });
+        }
+      }
+    }
+  }, [user, ALLOWED_COUPLE_EMAILS]);
 
   // Tải dữ liệu từ database Supabase (hoặc localStorage dự phòng) khi tải trang
   useEffect(() => {
@@ -101,6 +181,18 @@ export default function MemoryCorner({ user, onBack }) {
         }
 
         const rsvps = await supabase.db.getRSVPs('default');
+
+        // Lọc các lượt truy cập của thành viên khác
+        const visits = rsvps
+          .filter(r => r.status === 'member_visit')
+          .map(r => ({
+            id: r.id,
+            email: r.guest_name,
+            timestamp: r.created_at || new Date().toISOString(),
+            deviceInfo: parseDeviceFromUA(r.wish)
+          }));
+        setVisitLogs(visits);
+
         // Lọc các dòng RSVP dùng riêng cho mục đích ghi chép sức khỏe (status = sickness_log)
         const logs = rsvps
           .filter(r => r.status === 'sickness_log')
@@ -1821,6 +1913,136 @@ export default function MemoryCorner({ user, onBack }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN VISIT TRACKING DASHBOARD */}
+      {canEdit && (
+        <div className="health-card admin-dashboard" style={{ marginTop: '2.5rem' }}>
+          {/* Admin Header */}
+          <div className="health-title-box" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+            <span style={{ fontSize: '1.8rem' }}>📊</span>
+            <h3 className="health-title">Nhật Ký Truy Cập Của Em Iu</h3>
+          </div>
+
+          {/* Member Name */}
+          <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+            Đang theo dõi: <strong style={{ color: 'var(--accent-primary)' }}>{ALLOWED_COUPLE_EMAILS.filter(email => email !== user.email).join(', ') || 'Chưa cấu hình email em iu'}</strong>
+          </p>
+
+          {/* Quick Statistics Grid */}
+          <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+            <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+              <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📈</span>
+              <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                {visitLogs.length}
+              </span>
+              <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Tổng số lần truy cập</span>
+            </div>
+
+            <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+              <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗓️</span>
+              <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                {(() => {
+                  // Count current month visits (Vietnam local time)
+                  const now = new Date();
+                  const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+                  const stats = getVisitStats();
+                  return stats[currentMonthStr]?.total || 0;
+                })()}
+              </span>
+              <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Truy cập trong tháng</span>
+            </div>
+
+            <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+              <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>☀️</span>
+              <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                {(() => {
+                  // Count today's visits (Vietnam local time)
+                  const now = new Date();
+                  const todayStr = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+                  const stats = getVisitStats();
+                  const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+                  return stats[currentMonthStr]?.days[todayStr] || 0;
+                })()}
+              </span>
+              <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Truy cập hôm nay</span>
+            </div>
+          </div>
+
+          {/* Grouped Visits Calendar Details */}
+          <div className="admin-visits-details" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 700, borderLeft: '4px solid var(--accent-primary)', paddingLeft: '0.5rem' }}>Chi tiết lượt truy cập qua các ngày</h4>
+            
+            {visitLogs.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', textAlign: 'center', padding: '1.5rem 0' }}>Chưa có dữ liệu truy cập nào được ghi nhận 📭</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {Object.entries(getVisitStats()).map(([month, monthData]) => (
+                  <div key={month} className="glass-panel" style={{ padding: '1.25rem', borderRadius: '18px', border: '1px solid rgba(99, 102, 241, 0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.5rem' }}>
+                      <span>📅 Tháng {month}</span>
+                      <span style={{ background: 'var(--accent-primary)', color: 'white', padding: '0.2rem 0.75rem', borderRadius: '50px', fontSize: '0.8rem' }}>{monthData.total} lần</span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      {Object.entries(monthData.days)
+                        .sort((a, b) => {
+                          // Sort days in descending order (newest day first)
+                          const parseDate = (dStr) => {
+                            const [d, m, y] = dStr.split('/').map(Number);
+                            return new Date(y, m - 1, d);
+                          };
+                          return parseDate(b[0]) - parseDate(a[0]);
+                        })
+                        .map(([day, count]) => (
+                          <div key={day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 550 }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>🗓️ Ngày {day}</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{count} lần</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Timeline of Visits */}
+          <div className="admin-visits-timeline" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h4 style={{ fontSize: '1.1rem', fontWeight: 700, borderLeft: '4px solid var(--accent-primary)', paddingLeft: '0.5rem' }}>Lịch sử 10 lần truy cập gần nhất</h4>
+            
+            <div className="health-timeline" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+              {visitLogs.slice(0, 10).map((log, index) => {
+                const logDate = new Date(log.timestamp);
+                const ictMs = logDate.getTime() + (7 * 60 * 60 * 1000);
+                const ictDate = new Date(ictMs);
+                
+                const timeStr = String(ictDate.getUTCHours()).padStart(2, '0') + ':' + 
+                                String(ictDate.getUTCMinutes()).padStart(2, '0') + ':' + 
+                                String(ictDate.getUTCSeconds()).padStart(2, '0');
+                
+                const dateStr = String(ictDate.getUTCDate()).padStart(2, '0') + '/' + 
+                                String(ictDate.getUTCMonth() + 1).padStart(2, '0') + '/' + 
+                                ictDate.getUTCFullYear();
+
+                return (
+                  <div key={log.id || index} className="health-log-item" style={{ padding: '0.85rem 1rem', marginBottom: '0.75rem', minHeight: 'auto', gap: '0.75rem' }}>
+                    <div className="health-log-icon" style={{ width: '38px', height: '38px', fontSize: '1.25rem', padding: 0 }}>
+                      {log.deviceInfo.includes('Điện thoại') ? '📱' : '💻'}
+                    </div>
+                    <div className="health-log-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>{dateStr} - {timeStr}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{log.email}</span>
+                      </div>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{log.deviceInfo}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
