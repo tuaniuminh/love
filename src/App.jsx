@@ -15,6 +15,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState('login');
+  const [currentView, setCurrentView] = useState('memory');
 
   useEffect(() => {
     // Check initial auth session
@@ -45,6 +46,7 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setCurrentView('memory');
   };
 
   const isCouple = user && ALLOWED_COUPLE_EMAILS.includes(user.email);
@@ -61,6 +63,16 @@ export default function App() {
         
         <div className="nav-actions">
           <ThemeToggle />
+          
+          {user && isCouple && ALLOWED_COUPLE_EMAILS[0] === user.email && (
+            <button 
+              onClick={() => setCurrentView(prev => prev === 'memory' ? 'admin' : 'memory')} 
+              className="btn-logout"
+              style={{ padding: '0.55rem 1rem', fontSize: '0.85rem' }}
+            >
+              {currentView === 'memory' ? '📊 Quản lý' : '❤️ Kỷ niệm'}
+            </button>
+          )}
           
           {user ? (
             <button onClick={handleLogout} className="btn-logout">
@@ -85,6 +97,7 @@ export default function App() {
           /* Render Memory Corner directly if logged in as couple */
           <MemoryCorner 
             user={user}
+            viewMode={currentView}
             onBack={null}
           />
         ) : (
