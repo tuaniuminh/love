@@ -155,8 +155,6 @@ a:hover {
   border: 1px solid var(--navbar-border);
   box-shadow: var(--navbar-shadow);
   transition: var(--theme-transition);
-  position: sticky;
-  top: 1.5rem;
   z-index: 100;
 }
 
