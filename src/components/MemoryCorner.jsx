@@ -1824,12 +1824,6 @@ export default function MemoryCorner({ user, onBack }) {
           </div>
         </div>
       )}
-
-      <div className="back-home-footer" onClick={(e) => e.stopPropagation()}>
-        <button className="btn btn-secondary" onClick={onBack}>
-          ← Quay lại Trang chủ
-        </button>
-      </div>
     </div>
   );
 }
