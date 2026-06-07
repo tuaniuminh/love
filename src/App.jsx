@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import supabase from './supabaseClient';
 import ThemeToggle from './components/ThemeToggle';
 import Auth from './components/Auth';
 import MemoryCorner from './components/MemoryCorner';
-import WeddingInvitationView from './components/WeddingInvitationView';
-import WeddingInvitationCreator from './components/WeddingInvitationCreator';
 import './App.css';
 
 const ALLOWED_COUPLE_EMAILS = import.meta.env.VITE_ALLOWED_COUPLE_EMAILS
@@ -17,8 +15,6 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState('login');
-  const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     // Check initial auth session
@@ -49,7 +45,6 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    navigate('/');
   };
 
   const isCouple = user && ALLOWED_COUPLE_EMAILS.includes(user.email);
@@ -58,43 +53,17 @@ export default function App() {
     <div className="app-container">
       {/* Top Navbar */}
       <nav className="navbar glass-panel">
-        <div className="brand" onClick={() => navigate('/')}>
+        <div className="brand" style={{ cursor: 'default' }}>
           ❤️ Linh Tuấn & Ngô Minh
         </div>
         
         <div className="nav-actions">
           <ThemeToggle />
           
-          <button 
-            onClick={() => {
-              if (!user) {
-                setAuthInitialMode('login');
-                setShowAuthModal(true);
-              } else {
-                navigate('/tao-thiep');
-              }
-            }} 
-            className="btn btn-secondary"
-            style={{ fontWeight: 700, border: '1px solid #db2777', color: '#db2777' }}
-          >
-            💒 Tạo Thiệp Cưới
-          </button>
-          
           {user ? (
-            <>
-              {isCouple && (
-                <button 
-                  onClick={() => navigate('/ky-niem')} 
-                  className="btn btn-secondary"
-                  style={{ fontWeight: 700, border: '1px dashed #f43f5e', color: '#f43f5e' }}
-                >
-                  ❤️ Góc kỷ niệm
-                </button>
-              )}
-              <button onClick={handleLogout} className="btn btn-outline" style={{ fontWeight: 700 }}>
-                Đăng xuất
-              </button>
-            </>
+            <button onClick={handleLogout} className="btn btn-outline" style={{ fontWeight: 700 }}>
+              Đăng xuất
+            </button>
           ) : (
             <button onClick={() => { setAuthInitialMode('login'); setShowAuthModal(true); }} className="btn btn-primary">
               Đăng nhập / Đăng ký
@@ -105,121 +74,51 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="app-content">
-        <Routes>
-          {/* LANDING VIEW */}
-          <Route path="/" element={
-            <div>
-              <header className="hero-section">
-                <h1 className="hero-title">
-                  Chào mừng bạn đến với <br />
-                  <span>Không Gian Tình Yêu</span>
-                </h1>
-                <p className="hero-subtitle">
-                  Nơi lưu giữ những khoảnh khắc ngọt ngào nhất của chúng mình và hệ thống tự tay thiết kế thiệp cưới trực tuyến đầy lãng mạn.
-                </p>
-                {!user && (
-                  <button onClick={() => { setAuthInitialMode('signup'); setShowAuthModal(true); }} className="btn btn-primary" style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem' }}>
-                    Tạo tài khoản ngay 🚀
-                  </button>
-                )}
-              </header>
-
-              <div className="course-grid">
-                {/* Memory Corner Card */}
-                <div 
-                  className="course-card glass-panel" 
-                  onClick={() => {
-                    if (!user) {
-                      setAuthInitialMode('login');
-                      setShowAuthModal(true);
-                    } else if (isCouple) {
-                      navigate('/ky-niem');
-                    } else {
-                      alert('Góc kỷ niệm chỉ dành riêng cho cặp đôi được cấp quyền! ❤️');
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <h3 className="course-title">❤️ Góc Kỷ Niệm Cặp Đôi</h3>
-                  <p className="course-desc">
-                    Lưu trữ hành trình tình yêu, đếm số ngày yêu nhau lãng mạn, ghi chép sức khỏe em yêu hàng ngày và phát những bản nhạc ngọt ngào.
-                  </p>
-                  <div className="course-meta">
-                    <span className="course-badge badge-active">Chỉ dành cho Cặp đôi</span>
-                    <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>Truy cập</button>
-                  </div>
+        {authLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '1rem' }}>
+            <div style={{ fontSize: '2.5rem', animation: 'spin 2s linear infinite' }}>🔄</div>
+            <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Đang xác thực tài khoản...</p>
+          </div>
+        ) : user && isCouple ? (
+          /* Render Memory Corner directly if logged in as couple */
+          <MemoryCorner 
+            user={user}
+            onBack={null}
+          />
+        ) : (
+          /* Otherwise show a beautiful, romantic landing page asking to log in */
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: '2rem 1rem' }}>
+            <div className="glass-panel" style={{ padding: '3.5rem 2.5rem', borderRadius: '28px', maxWidth: '550px', width: '100%', border: '1px solid rgba(244, 63, 94, 0.2)', boxShadow: '0 20px 40px rgba(244, 63, 94, 0.1)' }}>
+              <div style={{ fontSize: '4.5rem', animation: 'heartBeat 1.4s infinite', display: 'inline-block', filter: 'drop-shadow(0 0 10px rgba(244, 63, 94, 0.4))', marginBottom: '1.5rem' }}>❤️</div>
+              <h1 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '1rem', background: 'linear-gradient(135deg, #f43f5e, #ec4899, #d946ef)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                Linh Tuấn & Ngô Minh
+              </h1>
+              <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '2.5rem' }}>
+                Chào mừng bạn đến với Góc Kỷ Niệm Tình Yêu. Vui lòng đăng nhập bằng tài khoản cặp đôi để vào xem nhật ký và đếm ngày yêu thương của hai đứa mình nhé! ❤️
+              </p>
+              
+              {user && !isCouple && (
+                <div className="alert alert-danger" style={{ marginBottom: '2rem', textAlign: 'left' }}>
+                  ⚠️ Tài khoản <strong>{user.email}</strong> không thuộc danh sách cặp đôi được cấp quyền truy cập. Vui lòng sử dụng tài khoản email phù hợp hoặc liên hệ quản trị viên!
                 </div>
-
-                {/* Wedding Invitation Card */}
-                <div 
-                  className="course-card glass-panel" 
-                  onClick={() => {
-                    if (!user) {
-                      setAuthInitialMode('login');
-                      setShowAuthModal(true);
-                    } else {
-                      navigate('/tao-thiep');
-                    }
-                  }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <h3 className="course-title">💒 Thiệp Cưới & RSVP</h3>
-                  <p className="course-desc">
-                    Hệ thống tự tạo thiệp cưới online cao cấp với nhạc nền lãng mạn, đếm ngược ngày cưới, xác nhận tham dự (RSVP) trực tuyến và tạo mã VietQR mừng cưới thông minh.
-                  </p>
-                  <div className="course-meta">
-                    <span className="course-badge badge-active" style={{ backgroundColor: '#ecfdf5', color: '#10b981' }}>Mở rộng rãi</span>
-                    <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>Truy cập</button>
-                  </div>
-                </div>
-              </div>
+              )}
+              
+              <button 
+                onClick={() => { 
+                  if (user) {
+                    handleLogout();
+                  }
+                  setAuthInitialMode('login'); 
+                  setShowAuthModal(true); 
+                }} 
+                className="btn btn-primary" 
+                style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem', borderRadius: '50px' }}
+              >
+                {user ? 'Đăng nhập tài khoản khác 🔄' : 'Đăng nhập vào Góc Kỷ Niệm 🔑'}
+              </button>
             </div>
-          } />
-
-          {/* LOVE ANNIVERSARY VIEW */}
-          <Route path="/ky-niem" element={
-            authLoading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '1rem' }}>
-                <div style={{ fontSize: '2.5rem', animation: 'spin 2s linear infinite' }}>🔄</div>
-                <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Đang xác thực quyền truy cập...</p>
-              </div>
-            ) : isCouple ? (
-              <MemoryCorner 
-                user={user}
-                onBack={() => navigate('/')}
-              />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          } />
-
-          {/* WEDDING INVITATION PUBLIC VIEW */}
-          <Route path="/thiep-cuoi" element={
-            <WeddingInvitationView />
-          } />
-          <Route path="/thiep-cuoi/:id" element={
-            <WeddingInvitationView />
-          } />
-
-          {/* WEDDING INVITATION CREATOR */}
-          <Route path="/tao-thiep" element={
-            authLoading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '1rem' }}>
-                <div style={{ fontSize: '2.5rem', animation: 'spin 2s linear infinite' }}>🔄</div>
-                <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Đang xác thực tài khoản...</p>
-              </div>
-            ) : user ? (
-              <WeddingInvitationCreator 
-                user={user}
-                onBack={() => navigate('/')}
-              />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          } />
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
