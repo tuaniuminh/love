@@ -59,7 +59,7 @@ export default function App() {
       {/* Top Navbar */}
       <nav className="navbar glass-panel">
         <div className="brand" onClick={() => navigate('/')}>
-          ❤️ Tuấn Minh & Quỳnh Anh
+          ❤️ Linh Tuấn & Ngô Minh
         </div>
         
         <div className="nav-actions">
@@ -224,7 +224,7 @@ export default function App() {
 
       {/* Footer */}
       <footer>
-        <p>© 2026 Tuấn Minh & Quỳnh Anh. Thiết kế với trọn vẹn yêu thương ❤️</p>
+        <p>© 2026 Linh Tuấn & Ngô Minh. Thiết kế với trọn vẹn yêu thương ❤️</p>
         <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
           Hệ thống chạy trên nền tảng Serverless Netlify & Supabase Cloud
         </p>

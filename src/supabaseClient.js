@@ -114,8 +114,8 @@ if (!supabase) {
         if (config) return JSON.parse(config);
         return {
           id: configId,
-          groom_name: "Lê Anh Tuấn",
-          bride_name: "Hoàng Hoài Minh",
+          groom_name: "Linh Tuấn",
+          bride_name: "Ngô Minh",
           groom_parents: "Ông Lê Anh Tuấn (Bố) & Bà Nguyễn Thị Minh (Mẹ)",
           bride_parents: "Ông Hoàng Văn Tuấn (Bố) & Bà Trần Thị Minh (Mẹ)",
           wedding_date: "2026-10-18T10:00:00",
@@ -278,8 +278,8 @@ if (!supabase) {
         if (config) return JSON.parse(config);
         return {
           id: configId,
-          groom_name: "Lê Anh Tuấn",
-          bride_name: "Hoàng Hoài Minh",
+          groom_name: "Linh Tuấn",
+          bride_name: "Ngô Minh",
           groom_parents: "Ông Lê Anh Tuấn (Bố) & Bà Nguyễn Thị Minh (Mẹ)",
           bride_parents: "Ông Hoàng Văn Tuấn (Bố) & Bà Trần Thị Minh (Mẹ)",
           wedding_date: "2026-10-18T10:00:00",

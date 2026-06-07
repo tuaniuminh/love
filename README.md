@@ -1,4 +1,4 @@
-# ❤️ Tuấn Minh & Quỳnh Anh - Góc Kỷ Niệm & Thiệp Cưới Online
+# ❤️ Linh Tuấn & Ngô Minh - Góc Kỷ Niệm & Thiệp Cưới Online
 
 Dự án lưu giữ kỷ niệm tình yêu lãng mạn kết hợp cùng nền tảng thiết kế thiệp cưới trực tuyến, khảo sát ý kiến khách mời (RSVP) và hộp mừng cưới thông minh.
 
