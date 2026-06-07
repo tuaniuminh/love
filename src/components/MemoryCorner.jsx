@@ -1626,10 +1626,9 @@ export default function MemoryCorner({ user, onBack }) {
 
         <div className="health-summary-box">
           <div className="health-heart-circle">
-            <span className="health-count-num">{filteredLogs.length}</span>
-            <span className="health-count-lbl">
-              {selectedYear === 'Tất cả' ? 'Tổng Lần Ốm' : 'Lần Trong Năm'}
-            </span>
+            <span className="health-count-lbl" style={{ fontSize: '0.75rem', opacity: 0.9 }}>Tổng</span>
+            <span className="health-count-num" style={{ fontSize: '2.6rem', margin: '1px 0' }}>{filteredLogs.length}</span>
+            <span className="health-count-lbl" style={{ fontSize: '0.75rem', opacity: 0.9 }}>Lần Ốm</span>
           </div>
 
           <div className={`health-warning-msg ${
