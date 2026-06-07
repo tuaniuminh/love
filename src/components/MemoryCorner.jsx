@@ -1642,7 +1642,7 @@ export default function MemoryCorner({ user, onBack }) {
           <h3 className="health-title">Sổ Tay Sức Khỏe Của Em Iu</h3>
         </div>
         <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0', lineHeight: '1.4' }}>
-          Thống kê đợt ốm qua các năm của bạn Ngô Minh và lời dặn dò yêu thương từ anh Tuấn đẹp trai
+          Thống kê đợt ốm qua các năm của em iu Ngô Minh và lời dặn dò yêu thương từ anh Tuấn đẹp trai
         </p>
 
         {/* Bộ lọc năm cực kỳ xinh xắn */}
