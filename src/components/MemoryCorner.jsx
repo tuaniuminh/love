@@ -57,8 +57,10 @@ export default function MemoryCorner({ user, onBack }) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   
   const [audio] = useState(() => {
-    // Permanent local file in the public folder.
-    const aud = new Audio('/mot-doi.mp3');
+    // Permanent local file in the public folder, respecting base path (e.g. /love/)
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const audioPath = baseUrl.endsWith('/') ? `${baseUrl}mot-doi.mp3` : `${baseUrl}/mot-doi.mp3`;
+    const aud = new Audio(audioPath);
     aud.loop = true;
     return aud;
   });
