@@ -323,16 +323,43 @@ export default function MemoryCorner({ user, onBack }) {
     ? sicknessLogs
     : sicknessLogs.filter(log => log.date.startsWith(selectedYear));
 
-  // Try to autoplay on mount (and setup fallback listener)
+  // Try to autoplay on mount and set up robust fallback interaction triggers (click, touch, scroll, etc.)
   useEffect(() => {
-    const playAudio = () => {
+    const startAudioOnInteraction = () => {
+      if (!userPaused && audio.paused) {
+        audio.play()
+          .then(() => {
+            setIsPlaying(true);
+            removeInteractionListeners();
+          })
+          .catch(err => {
+            console.log("Autoplay interaction trigger failed:", err);
+          });
+      }
+    };
+
+    const removeInteractionListeners = () => {
+      window.removeEventListener('click', startAudioOnInteraction);
+      window.removeEventListener('touchstart', startAudioOnInteraction);
+      window.removeEventListener('scroll', startAudioOnInteraction, { passive: true });
+      window.removeEventListener('wheel', startAudioOnInteraction, { passive: true });
+    };
+
+    // Add multiple interaction listeners
+    window.addEventListener('click', startAudioOnInteraction);
+    window.addEventListener('touchstart', startAudioOnInteraction, { passive: true });
+    window.addEventListener('scroll', startAudioOnInteraction, { passive: true });
+    window.addEventListener('wheel', startAudioOnInteraction, { passive: true });
+
+    const playAudioImmediate = () => {
       if (!userPaused) {
         audio.play()
           .then(() => {
             setIsPlaying(true);
+            removeInteractionListeners();
           })
           .catch(err => {
-            console.log("Autoplay blocked or waiting for user interaction:", err);
+            console.log("Autoplay blocked, waiting for user interaction (click, scroll, touch)...", err);
           });
       }
     };
@@ -343,12 +370,13 @@ export default function MemoryCorner({ user, onBack }) {
     };
 
     audio.addEventListener('error', handleError);
-    const playTimeout = setTimeout(playAudio, 150);
+    const playTimeout = setTimeout(playAudioImmediate, 150);
 
     return () => {
       clearTimeout(playTimeout);
       audio.pause();
       audio.removeEventListener('error', handleError);
+      removeInteractionListeners();
     };
   }, [audio, userPaused]);
 
