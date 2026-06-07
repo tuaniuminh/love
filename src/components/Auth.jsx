@@ -182,11 +182,23 @@ export default function Auth({ onAuthSuccess, onClose, initialMode = 'login' }) 
 
         if (error) throw error;
         
-        setSuccessMsg('Đăng ký tài khoản thành công! Bạn đã tự động đăng nhập.');
-        setTimeout(() => {
-          onAuthSuccess(data.user);
-          if (onClose) onClose();
-        }, 1500);
+        if (supabase.isMock) {
+          setSuccessMsg('Đăng ký tài khoản thành công! Bạn đã tự động đăng nhập.');
+          setTimeout(() => {
+            onAuthSuccess(data.user);
+            if (onClose) onClose();
+          }, 1500);
+        } else if (!data.session) {
+          setSuccessMsg('Đăng ký thành công! Một email xác nhận đã được gửi đến hòm thư của bạn. Vui lòng kiểm tra email (bao gồm cả thư rác/Spam) và nhấp vào liên kết xác nhận để kích hoạt tài khoản.');
+          setPassword('');
+          setConfirmPassword('');
+        } else {
+          setSuccessMsg('Đăng ký tài khoản thành công! Bạn đã tự động đăng nhập.');
+          setTimeout(() => {
+            onAuthSuccess(data.user);
+            if (onClose) onClose();
+          }, 1500);
+        }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
