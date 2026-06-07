@@ -28,6 +28,11 @@
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(226, 232, 240, 0.8);
   --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
+
+  --navbar-bg: rgba(255, 255, 255, 0.65);
+  --navbar-border: rgba(244, 63, 94, 0.15);
+  --navbar-shadow: 0 10px 30px -10px rgba(244, 63, 94, 0.1);
+  --navbar-border-logout: rgba(244, 63, 94, 0.35);
   
   --success: #10b981;
   --success-light: #ecfdf5;
@@ -56,6 +61,11 @@
   --glass-bg: rgba(17, 24, 39, 0.7);
   --glass-border: rgba(31, 41, 55, 0.7);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+  --navbar-bg: rgba(9, 13, 22, 0.7);
+  --navbar-border: rgba(244, 63, 94, 0.25);
+  --navbar-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.55);
+  --navbar-border-logout: rgba(244, 63, 94, 0.5);
   
   --success: #34d399;
   --success-light: rgba(52, 211, 153, 0.1);
@@ -135,26 +145,61 @@ a:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
-  margin-bottom: 2rem;
+  padding: 0.75rem 2rem;
+  margin-top: 1.5rem;
+  margin-bottom: 2.5rem;
+  border-radius: 50px;
+  background: var(--navbar-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--navbar-border);
+  box-shadow: var(--navbar-shadow);
+  transition: var(--theme-transition);
+  position: sticky;
+  top: 1.5rem;
+  z-index: 100;
 }
 
 .brand {
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
+  gap: 0.65rem;
+  cursor: default;
+}
+
+.brand-text {
+  background: linear-gradient(135deg, #f43f5e 0%, #ec4899 50%, #d946ef 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: filter 0.3s ease;
+}
+
+.brand:hover .brand-text {
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.45));
+}
+
+.brand-heart {
+  display: inline-block;
+  font-size: 1.4rem;
+  animation: navbarHeartBeat 1.6s infinite cubic-bezier(0.25, 0.8, 0.25, 1);
+  transform-origin: center;
+  filter: drop-shadow(0 2px 4px rgba(244, 63, 94, 0.45));
+}
+
+@keyframes navbarHeartBeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.28); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.2); }
+  70% { transform: scale(1); }
 }
 
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 /* Buttons */
@@ -218,6 +263,59 @@ a:hover {
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;
+}
+
+/* Custom premium classes for navbar elements */
+.btn-logout {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1.5px solid var(--navbar-border-logout);
+  font-weight: 700;
+  border-radius: 50px;
+  padding: 0.55rem 1.35rem;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-logout:hover {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.08), rgba(217, 70, 239, 0.08));
+  border-color: #f43f5e;
+  color: #f43f5e;
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.12);
+}
+
+.btn-logout:active {
+  transform: translateY(0);
+}
+
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.theme-toggle-btn:hover {
+  transform: rotate(30deg) scale(1.08);
+  border-color: var(--accent-primary);
+  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.12);
+  background: var(--bg-tertiary);
+}
+
+.theme-toggle-btn:active {
+  transform: rotate(30deg) scale(0.95);
 }
 
 /* Landing Page Hero and Header text */
@@ -401,8 +499,10 @@ button,
     flex-wrap: wrap !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 0.75rem 1rem !important;
-    margin-bottom: 1.25rem !important;
+    padding: 0.75rem 1.25rem !important;
+    margin-top: 1rem !important;
+    margin-bottom: 1.5rem !important;
+    border-radius: 28px !important;
     gap: 0.75rem !important;
   }
 
@@ -431,7 +531,8 @@ button,
       flex-direction: column !important;
       align-items: center !important;
       gap: 0.75rem !important;
-      padding: 0.75rem 0.5rem !important;
+      padding: 0.75rem 1rem !important;
+      border-radius: 20px !important;
     }
     
     .brand {

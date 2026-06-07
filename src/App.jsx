@@ -52,20 +52,21 @@ export default function App() {
   return (
     <div className="app-container">
       {/* Top Navbar */}
-      <nav className="navbar glass-panel">
-        <div className="brand" style={{ cursor: 'default' }}>
-          ❤️ Linh Tuấn & Ngô Minh
+      <nav className="navbar">
+        <div className="brand">
+          <span className="brand-heart">❤️</span>
+          <span className="brand-text">Linh Tuấn & Ngô Minh</span>
         </div>
         
         <div className="nav-actions">
           <ThemeToggle />
           
           {user ? (
-            <button onClick={handleLogout} className="btn btn-outline" style={{ fontWeight: 700 }}>
+            <button onClick={handleLogout} className="btn-logout">
               Đăng xuất
             </button>
           ) : (
-            <button onClick={() => { setAuthInitialMode('login'); setShowAuthModal(true); }} className="btn btn-primary">
+            <button onClick={() => { setAuthInitialMode('login'); setShowAuthModal(true); }} className="btn btn-primary" style={{ borderRadius: '50px', padding: '0.55rem 1.35rem' }}>
               Đăng nhập / Đăng ký
             </button>
           )}
