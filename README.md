@@ -1,6 +1,6 @@
-# ❤️ Linh Tuấn & Ngô Minh - Góc Kỷ Niệm & Thiệp Cưới Online (Bản cập nhật bảo mật)
+# Linh Tuấn ❤️ Ngô Minh - Góc Kỷ Niệm Tình Yêu
 
-Dự án lưu giữ kỷ niệm tình yêu lãng mạn kết hợp cùng nền tảng thiết kế thiệp cưới trực tuyến, khảo sát ý kiến khách mời (RSVP) và hộp mừng cưới thông minh.
+Dự án lưu giữ kỷ niệm tình yêu lãng mạn, đếm ngày yêu nhau và nhật ký sức khỏe cặp đôi.
 
 ## 🚀 Tính năng nổi bật
 

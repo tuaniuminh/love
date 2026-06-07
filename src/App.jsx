@@ -54,8 +54,9 @@ export default function App() {
       {/* Top Navbar */}
       <nav className="navbar">
         <div className="brand">
+          <span className="brand-text">Linh Tuấn</span>
           <span className="brand-heart">❤️</span>
-          <span className="brand-text">Linh Tuấn & Ngô Minh</span>
+          <span className="brand-text">Ngô Minh</span>
         </div>
         
         <div className="nav-actions">
@@ -91,8 +92,10 @@ export default function App() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: '2rem 1rem' }}>
             <div className="glass-panel" style={{ padding: '3.5rem 2.5rem', borderRadius: '28px', maxWidth: '550px', width: '100%', border: '1px solid rgba(244, 63, 94, 0.2)', boxShadow: '0 20px 40px rgba(244, 63, 94, 0.1)' }}>
               <div style={{ fontSize: '4.5rem', animation: 'heartBeat 1.4s infinite', display: 'inline-block', filter: 'drop-shadow(0 0 10px rgba(244, 63, 94, 0.4))', marginBottom: '1.5rem' }}>❤️</div>
-              <h1 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '1rem', background: 'linear-gradient(135deg, #f43f5e, #ec4899, #d946ef)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Linh Tuấn & Ngô Minh
+              <h1 style={{ fontSize: '2.2rem', fontWeight: 900, marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span style={{ background: 'linear-gradient(135deg, #f43f5e, #ec4899, #d946ef)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Linh Tuấn</span>
+                <span style={{ fontSize: '1.8rem', animation: 'heartBeat 1.4s infinite', display: 'inline-block' }}>❤️</span>
+                <span style={{ background: 'linear-gradient(135deg, #f43f5e, #ec4899, #d946ef)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Ngô Minh</span>
               </h1>
               <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '2.5rem' }}>
                 Chào mừng bạn đến với Góc Kỷ Niệm Tình Yêu. Vui lòng đăng nhập bằng tài khoản cặp đôi để vào xem nhật ký và đếm ngày yêu thương của hai đứa mình nhé! ❤️
@@ -124,7 +127,7 @@ export default function App() {
 
       {/* Footer */}
       <footer>
-        <p>© 2026 Linh Tuấn & Ngô Minh. Thiết kế với trọn vẹn yêu thương ❤️</p>
+        <p>© 2026 Linh Tuấn ❤️ Ngô Minh. Thiết kế với trọn vẹn yêu thương ❤️</p>
         <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
           Hệ thống chạy trên nền tảng Serverless Netlify & Supabase Cloud
         </p>
