@@ -380,9 +380,11 @@ export default function MemoryCorner({ user, onBack }) {
     };
   }, [audio, userPaused]);
 
-  // Calculate days in love from 03/09/2025 using accurate server time to prevent local clock cheating
+  // Calculate days in love from 03/09/2025 using accurate server time in Vietnam timezone (GMT+7)
   useEffect(() => {
-    const startDate = new Date('2025-09-03T00:00:00');
+    // Start date in Vietnam timezone: 2025-09-03 00:00:00 GMT+7 (equals 2025-09-02 17:00:00 UTC)
+    const startMs = new Date('2025-09-02T17:00:00Z').getTime();
+    const startDayEpoch = Math.floor((startMs + 7 * 60 * 60 * 1000) / (1000 * 60 * 60 * 24));
     
     const updateDays = async () => {
       let today = new Date();
@@ -405,8 +407,12 @@ export default function MemoryCorner({ user, onBack }) {
         console.warn("Could not fetch server time, using local device time as fallback:", err);
       }
 
-      const diffTime = today.getTime() - startDate.getTime();
-      const calculatedDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // Count day 1
+      // Convert current time to Vietnam epoch days
+      const currentMs = today.getTime();
+      const currentDayEpoch = Math.floor((currentMs + 7 * 60 * 60 * 1000) / (1000 * 60 * 60 * 24));
+      
+      // Calculate days count (inclusive of start day)
+      const calculatedDays = currentDayEpoch - startDayEpoch + 1;
       setDays(calculatedDays);
     };
 
