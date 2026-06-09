@@ -1357,23 +1357,9 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
         }
 
         .health-log-type {
-          font-size: 0.88rem;
+          font-size: 0.95rem;
           font-weight: 800;
-          color: #e11d48;
-          background: rgba(225, 29, 72, 0.06);
-          border: 1px solid rgba(225, 29, 72, 0.15);
-          padding: 0.25rem 0.75rem;
-          border-radius: 50px;
-          display: inline-flex;
-          align-items: center;
-          box-shadow: 0 2px 6px rgba(225, 29, 72, 0.03);
-          transition: all 0.3s ease;
-        }
-
-        [data-theme='dark'] .health-log-type {
-          color: #fda4af;
-          background: rgba(244, 63, 94, 0.18);
-          border-color: rgba(244, 63, 94, 0.25);
+          color: var(--text-primary);
         }
 
         .health-log-notes {
@@ -1624,8 +1610,7 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
             height: 42px;
           }
           .health-log-type {
-            font-size: 0.78rem;
-            padding: 0.2rem 0.6rem;
+            font-size: 0.85rem;
           }
           .health-log-date {
             font-size: 0.75rem;
