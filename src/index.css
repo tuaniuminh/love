@@ -600,9 +600,95 @@ button,
   font-size: 0.8rem;
   transition: all 0.2s ease;
   text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .btn-update-check:hover {
   color: var(--accent-primary-hover);
   transform: scale(1.05);
+}
+
+/* PWA Toast Notification */
+.pwa-toast-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 1200;
+  animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pwa-toast {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  box-shadow: 0 10px 30px rgba(244, 63, 94, 0.15);
+}
+
+[data-theme='dark'] .pwa-toast {
+  background: rgba(30, 27, 75, 0.65);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.pwa-toast-icon {
+  font-size: 1.5rem;
+}
+
+.pwa-toast-message {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.pwa-toast-btn {
+  background: linear-gradient(135deg, #f43f5e, #ec4899);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(244, 63, 94, 0.3);
+}
+
+.pwa-toast-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(244, 63, 94, 0.4);
+}
+
+.pwa-toast-btn:active {
+  transform: translateY(0);
+}
+
+/* Spin animation for update check button */
+.spin-icon {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 576px) {
+  .pwa-toast-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
+  .pwa-toast {
+    justify-content: space-between;
+    width: 100%;
+  }
 }

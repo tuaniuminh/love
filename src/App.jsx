@@ -20,6 +20,7 @@ export default function App() {
   const [swRegistration, setSwRegistration] = useState(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [showLogoModal, setShowLogoModal] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState('idle'); // 'idle' | 'checking' | 'latest' | 'available'
 
   // Đăng ký Service Worker và quản lý cập nhật (PWA)
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function App() {
           // Phát hiện có Service Worker mới đang chờ kích hoạt
           if (reg.waiting) {
             setUpdateAvailable(true);
+            setUpdateStatus('available');
           }
 
           // Theo dõi các bản cập nhật mới được tải về
@@ -44,6 +46,7 @@ export default function App() {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   setUpdateAvailable(true);
+                  setUpdateStatus('available');
                 }
               });
             }
@@ -72,24 +75,36 @@ export default function App() {
     
     if (swRegistration) {
       try {
+        setUpdateStatus('checking');
         console.log('Checking for service worker updates...');
+        
+        // Simulating artificial delay for smooth visual transition
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
         await swRegistration.update();
         
         if (swRegistration.waiting) {
           setUpdateAvailable(true);
-          const confirmUpdate = window.confirm('🎉 Đã có phiên bản mới của ứng dụng! Bạn có muốn cập nhật ngay không? ❤️');
-          if (confirmUpdate) {
-            swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          }
+          setUpdateStatus('available');
         } else {
-          alert('✨ Ứng dụng đang ở phiên bản mới nhất (v1.2.1)!');
+          setUpdateStatus('latest');
+          setTimeout(() => {
+            setUpdateStatus('idle');
+          }, 3000);
         }
       } catch (err) {
         console.error('Failed to check for PWA update:', err);
+        setUpdateStatus('idle');
         alert('Không thể kết nối máy chủ để kiểm tra cập nhật. Vui lòng thử lại sau!');
       }
     } else {
       alert('Ứng dụng đang tải tài nguyên, vui lòng thử lại sau giây lát!');
+    }
+  };
+
+  const handleApplyUpdate = () => {
+    if (swRegistration && swRegistration.waiting) {
+      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
     }
   };
 
@@ -228,7 +243,34 @@ export default function App() {
       <footer>
         <p>© 2026 Linh Tuấn ❤️ Ngô Minh</p>
         <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
-          Phiên bản v1.2.1 • <button onClick={handleCheckUpdate} className="btn-update-check" title="Kiểm tra xem có bản cập nhật mới hay không">Kiểm tra cập nhật 🔄</button>
+          Phiên bản v1.2.1 •{' '}
+          <button 
+            onClick={handleCheckUpdate} 
+            className="btn-update-check" 
+            disabled={updateStatus === 'checking'}
+            title="Kiểm tra xem có bản cập nhật mới hay không"
+          >
+            {updateStatus === 'idle' && (
+              <>
+                Kiểm tra cập nhật <span style={{ fontSize: '0.75rem' }}>🔄</span>
+              </>
+            )}
+            {updateStatus === 'checking' && (
+              <>
+                Đang kiểm tra... <span className="spin-icon" style={{ fontSize: '0.75rem' }}>🔄</span>
+              </>
+            )}
+            {updateStatus === 'latest' && (
+              <>
+                Bản mới nhất <span style={{ fontSize: '0.75rem' }}>✅</span>
+              </>
+            )}
+            {updateStatus === 'available' && (
+              <>
+                Có bản mới! <span style={{ fontSize: '0.75rem' }}>🌟</span>
+              </>
+            )}
+          </button>
         </p>
       </footer>
 
@@ -247,6 +289,21 @@ export default function App() {
       {/* Logo Proposals Modal */}
       {showLogoModal && (
         <LogoProposals onClose={() => setShowLogoModal(false)} />
+      )}
+
+      {/* PWA Update Toast Notification */}
+      {updateAvailable && (
+        <div className="pwa-toast-container">
+          <div className="pwa-toast">
+            <span className="pwa-toast-icon">✨</span>
+            <div className="pwa-toast-message">
+              Ứng dụng đã có phiên bản mới!
+            </div>
+            <button className="pwa-toast-btn" onClick={handleApplyUpdate}>
+              Cập nhật ngay
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
