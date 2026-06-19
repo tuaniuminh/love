@@ -4,7 +4,8 @@ const ASSETS_TO_CACHE = [
   './index.html',
   './favicon.svg',
   './icons.svg',
-  './manifest.json'
+  './manifest.json',
+  './logo_proposal_1.png'
 ];
 
 // Install Event: Cache core static assets
