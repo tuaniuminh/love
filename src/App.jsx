@@ -4,6 +4,7 @@ import supabase from './supabaseClient';
 import ThemeToggle from './components/ThemeToggle';
 import Auth from './components/Auth';
 import MemoryCorner from './components/MemoryCorner';
+import LogoProposals from './components/LogoProposals';
 import './App.css';
 
 const ALLOWED_COUPLE_EMAILS = import.meta.env.VITE_ALLOWED_COUPLE_EMAILS
@@ -18,6 +19,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState('memory');
   const [swRegistration, setSwRegistration] = useState(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [showLogoModal, setShowLogoModal] = useState(false);
 
   // Đăng ký Service Worker và quản lý cập nhật (PWA)
   useEffect(() => {
@@ -138,6 +140,16 @@ export default function App() {
         <div className="nav-actions">
           <ThemeToggle />
           
+          {user && isCouple && (
+            <button 
+              onClick={() => setShowLogoModal(true)} 
+              className="btn-logout"
+              style={{ padding: '0.55rem 1rem', fontSize: '0.85rem', background: 'rgba(244, 63, 94, 0.1)', color: 'var(--accent-primary)', border: '1px solid rgba(244, 63, 94, 0.2)' }}
+            >
+              🎨 Đề xuất Logo
+            </button>
+          )}
+          
           {user && isCouple && ALLOWED_COUPLE_EMAILS[0] === user.email && (
             <button 
               onClick={() => setCurrentView(prev => prev === 'memory' ? 'admin' : 'memory')} 
@@ -230,6 +242,11 @@ export default function App() {
           }}
           onClose={() => setShowAuthModal(false)}
         />
+      )}
+
+      {/* Logo Proposals Modal */}
+      {showLogoModal && (
+        <LogoProposals onClose={() => setShowLogoModal(false)} />
       )}
     </div>
   );
