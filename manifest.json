@@ -1,0 +1,19 @@
+{
+  "name": "Linh Tuấn ❤️ Ngô Minh - Góc Kỷ Niệm",
+  "short_name": "Tình Yêu",
+  "description": "Góc Kỷ Niệm Tình Yêu Của Linh Tuấn & Ngô Minh",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff1f2",
+  "theme_color": "#f43f5e",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
