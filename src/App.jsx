@@ -16,6 +16,80 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState('login');
   const [currentView, setCurrentView] = useState('memory');
+  const [swRegistration, setSwRegistration] = useState(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  // Đăng ký Service Worker và quản lý cập nhật (PWA)
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      const baseUrl = import.meta.env.BASE_URL || '/';
+      const swUrl = `${baseUrl}sw.js`;
+      
+      navigator.serviceWorker.register(swUrl)
+        .then(reg => {
+          console.log('PWA Service Worker registered successfully!');
+          setSwRegistration(reg);
+
+          // Phát hiện có Service Worker mới đang chờ kích hoạt
+          if (reg.waiting) {
+            setUpdateAvailable(true);
+          }
+
+          // Theo dõi các bản cập nhật mới được tải về
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  setUpdateAvailable(true);
+                }
+              });
+            }
+          });
+        })
+        .catch(err => {
+          console.warn('PWA Service Worker registration failed:', err);
+        });
+
+      // Tự động tải lại trang khi Service Worker mới chính thức hoạt động
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+  }, []);
+
+  const handleCheckUpdate = async () => {
+    if (!('serviceWorker' in navigator)) {
+      alert('Trình duyệt của bạn chưa hỗ trợ ứng dụng PWA!');
+      return;
+    }
+    
+    if (swRegistration) {
+      try {
+        console.log('Checking for service worker updates...');
+        await swRegistration.update();
+        
+        if (swRegistration.waiting) {
+          setUpdateAvailable(true);
+          const confirmUpdate = window.confirm('🎉 Đã có phiên bản mới của ứng dụng! Bạn có muốn cập nhật ngay không? ❤️');
+          if (confirmUpdate) {
+            swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        } else {
+          alert('✨ Ứng dụng đang ở phiên bản mới nhất (v1.2.0)!');
+        }
+      } catch (err) {
+        console.error('Failed to check for PWA update:', err);
+        alert('Không thể kết nối máy chủ để kiểm tra cập nhật. Vui lòng thử lại sau!');
+      }
+    } else {
+      alert('Ứng dụng đang tải tài nguyên, vui lòng thử lại sau giây lát!');
+    }
+  };
 
   useEffect(() => {
     // Check initial auth session
@@ -141,6 +215,9 @@ export default function App() {
       {/* Footer */}
       <footer>
         <p>© 2026 Linh Tuấn ❤️ Ngô Minh</p>
+        <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
+          Phiên bản v1.2.0 • <button onClick={handleCheckUpdate} className="btn-update-check" title="Kiểm tra xem có bản cập nhật mới hay không">Kiểm tra cập nhật 🔄</button>
+        </p>
       </footer>
 
       {/* Auth Modal Overlay */}
