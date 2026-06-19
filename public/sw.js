@@ -1,11 +1,10 @@
-const CACHE_NAME = 'love-app-cache-v1.2.1';
+const CACHE_NAME = 'love-app-cache-v1.2.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './favicon.svg',
   './icons.svg',
   './manifest.json',
-  './logo_proposal_1.png',
   './logo_pwa.png'
 ];
 
