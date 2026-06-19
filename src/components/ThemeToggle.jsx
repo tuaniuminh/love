@@ -6,6 +6,15 @@ export default function ThemeToggle() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('tm_theme', theme);
+    
+    // Update theme-color meta tag dynamically for PWA status bar sync
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.name = 'theme-color';
+      document.head.appendChild(metaThemeColor);
+    }
+    metaThemeColor.content = theme === 'light' ? '#fff1f2' : '#1e1b4b';
   }, [theme]);
 
   const toggleTheme = () => {
