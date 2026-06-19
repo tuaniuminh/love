@@ -82,7 +82,7 @@ export default function App() {
             swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
         } else {
-          alert('✨ Ứng dụng đang ở phiên bản mới nhất (v1.2.0)!');
+          alert('✨ Ứng dụng đang ở phiên bản mới nhất (v1.2.1)!');
         }
       } catch (err) {
         console.error('Failed to check for PWA update:', err);
@@ -228,7 +228,7 @@ export default function App() {
       <footer>
         <p>© 2026 Linh Tuấn ❤️ Ngô Minh</p>
         <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
-          Phiên bản v1.2.0 • <button onClick={handleCheckUpdate} className="btn-update-check" title="Kiểm tra xem có bản cập nhật mới hay không">Kiểm tra cập nhật 🔄</button>
+          Phiên bản v1.2.1 • <button onClick={handleCheckUpdate} className="btn-update-check" title="Kiểm tra xem có bản cập nhật mới hay không">Kiểm tra cập nhật 🔄</button>
         </p>
       </footer>
 
