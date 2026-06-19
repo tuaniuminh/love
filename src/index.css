@@ -146,7 +146,7 @@ a:hover {
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 2rem;
-  margin-top: 1.5rem;
+  margin-top: calc(1.5rem + env(safe-area-inset-top, 0px));
   margin-bottom: 2.5rem;
   border-radius: 50px;
   background: var(--navbar-bg);
