@@ -71,6 +71,38 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
     return aud;
   });
 
+  // Fade-in volume helper to start music softly and get louder gradually
+  const fadeInAudio = (aud) => {
+    if (!aud) return;
+    if (aud.fadeInterval) {
+      clearInterval(aud.fadeInterval);
+    }
+    aud.volume = 0;
+    const targetVolume = 0.8;
+    const duration = 3000; // 3 seconds fade-in
+    const step = 0.02; // Increment step
+    const intervalTime = duration / (targetVolume / step);
+    
+    aud.fadeInterval = setInterval(() => {
+      if (aud.volume < targetVolume) {
+        aud.volume = Math.min(targetVolume, aud.volume + step);
+      } else {
+        clearInterval(aud.fadeInterval);
+        aud.fadeInterval = null;
+      }
+    }, intervalTime);
+  };
+
+  // Pause audio and clear any ongoing fade interval
+  const pauseAudio = (aud) => {
+    if (!aud) return;
+    if (aud.fadeInterval) {
+      clearInterval(aud.fadeInterval);
+      aud.fadeInterval = null;
+    }
+    aud.pause();
+  };
+
   // Thiết lập Media Session Metadata (Hình nền nhạc, tên bài hát, ca sĩ trên màn hình khóa điện thoại)
   useEffect(() => {
     if ('mediaSession' in navigator && audio) {
@@ -93,10 +125,11 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
 
       // Điều khiển nhạc từ màn hình khóa / tai nghe
       navigator.mediaSession.setActionHandler('play', () => {
+        fadeInAudio(audio);
         audio.play().then(() => setIsPlaying(true)).catch(err => console.error("MediaSession play error:", err));
       });
       navigator.mediaSession.setActionHandler('pause', () => {
-        audio.pause();
+        pauseAudio(audio);
         setIsPlaying(false);
       });
     }
@@ -610,6 +643,7 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
   useEffect(() => {
     const startAudioOnInteraction = () => {
       if (!userPaused && audio.paused) {
+        fadeInAudio(audio);
         audio.play()
           .then(() => {
             setIsPlaying(true);
@@ -636,6 +670,7 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
 
     const playAudioImmediate = () => {
       if (!userPaused) {
+        fadeInAudio(audio);
         audio.play()
           .then(() => {
             setIsPlaying(true);
@@ -657,7 +692,7 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
 
     return () => {
       clearTimeout(playTimeout);
-      audio.pause();
+      pauseAudio(audio);
       audio.removeEventListener('error', handleError);
       removeInteractionListeners();
     };
@@ -764,6 +799,7 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
 
     // Try to autoplay on first user interaction if not explicitly paused by user
     if (audio && audio.paused && !userPaused && !isPlaying) {
+      fadeInAudio(audio);
       audio.play()
         .then(() => setIsPlaying(true))
         .catch(err => {
@@ -812,10 +848,11 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
   const togglePlay = (e) => {
     e.stopPropagation(); // Avoid spawning click heart
     if (isPlaying) {
-      audio.pause();
+      pauseAudio(audio);
       setIsPlaying(false);
       setUserPaused(true);
     } else {
+      fadeInAudio(audio);
       audio.play()
         .then(() => {
           setIsPlaying(true);
