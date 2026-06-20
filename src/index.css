@@ -83,6 +83,12 @@
   padding: 0;
 }
 
+html {
+  background-color: var(--bg-primary);
+  transition: var(--theme-transition);
+  min-height: 100vh;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: transparent;

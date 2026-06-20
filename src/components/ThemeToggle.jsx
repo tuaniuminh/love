@@ -7,12 +7,12 @@ export default function ThemeToggle() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('tm_theme', theme);
     
-    // Check if running as iOS PWA standalone mode
-    const isIOSStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    // Detect iOS (iPhone, iPad, iPod, and iPadOS desktop mode)
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     
-    if (isIOSStandalone && isIOS) {
-      // Remove theme-color meta tag to let black-translucent status bar overlay work
+    if (isIOS) {
+      // Remove theme-color meta tag on iOS to let Safari defaults / black-translucent overlay work perfectly
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
         metaThemeColor.remove();
