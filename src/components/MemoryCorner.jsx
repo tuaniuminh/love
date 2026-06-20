@@ -70,16 +70,17 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
     if ('mediaSession' in navigator && audio) {
       const baseUrl = import.meta.env.BASE_URL || '/';
       const logoPath = baseUrl.endsWith('/') ? `${baseUrl}logo_pwa.png` : `${baseUrl}/logo_pwa.png`;
+      const absoluteLogoUrl = new URL(logoPath, window.location.href).href;
       
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'Một Đời',
         artist: 'Linh Tuấn ❤️ Ngô Minh',
         album: 'WeLove - Góc Kỷ Niệm',
         artwork: [
-          { src: logoPath, sizes: '512x512', type: 'image/png' },
-          { src: logoPath, sizes: '384x384', type: 'image/png' },
-          { src: logoPath, sizes: '256x256', type: 'image/png' },
-          { src: logoPath, sizes: '192x192', type: 'image/png' }
+          { src: absoluteLogoUrl, sizes: '512x512', type: 'image/png' },
+          { src: absoluteLogoUrl, sizes: '384x384', type: 'image/png' },
+          { src: absoluteLogoUrl, sizes: '256x256', type: 'image/png' },
+          { src: absoluteLogoUrl, sizes: '192x192', type: 'image/png' }
         ]
       });
 
