@@ -206,6 +206,44 @@ if (!supabase) {
         wishes.unshift(newWish);
         localStorage.setItem('tm_wedding_wishes', JSON.stringify(wishes));
         return { data: newWish, error: null };
+      },
+
+      subscribeToPush: async (registration, userEmail) => {
+        try {
+          const vapidPublicKey = 'BAHNHXdgvp1JNWlD_X_KHqpzKQgz5pb59b0hJTXz9eDPAJwD4mYUfSS4zXQXMUTSWEjQz2_jxwz28mn2-k_Drgo';
+          const padding = '='.repeat((4 - (vapidPublicKey.length % 4)) % 4);
+          const base64 = (vapidPublicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+          const rawData = window.atob(base64);
+          const outputArray = new Uint8Array(rawData.length);
+          for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+          }
+
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: outputArray
+          });
+
+          const rsvps = await supabase.db.getRSVPs('default');
+          const endpoint = subscription.endpoint;
+          const existing = rsvps.find(r => r.status === 'push_subscription' && r.wish.includes(endpoint));
+
+          if (!existing) {
+            await supabase.db.saveRSVP('default', {
+              guest_name: userEmail || 'unknown',
+              status: 'push_subscription',
+              guest_count: 1,
+              side: navigator.userAgent || 'unknown',
+              wish: JSON.stringify(subscription),
+              created_at: new Date().toISOString()
+            });
+            console.log('Push subscription saved successfully to mock database!');
+          }
+          return subscription;
+        } catch (err) {
+          console.warn('Failed to subscribe user to Push:', err);
+          throw err;
+        }
       }
     }
   };
@@ -442,6 +480,44 @@ if (!supabase) {
         wishes.unshift(mockWish);
         localStorage.setItem('tm_wedding_wishes', JSON.stringify(wishes));
         return { data: mockWish, error: null };
+      }
+    },
+
+    subscribeToPush: async (registration, userEmail) => {
+      try {
+        const vapidPublicKey = 'BAHNHXdgvp1JNWlD_X_KHqpzKQgz5pb59b0hJTXz9eDPAJwD4mYUfSS4zXQXMUTSWEjQz2_jxwz28mn2-k_Drgo';
+        const padding = '='.repeat((4 - (vapidPublicKey.length % 4)) % 4);
+        const base64 = (vapidPublicKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: outputArray
+        });
+
+        const rsvps = await supabase.db.getRSVPs('default');
+        const endpoint = subscription.endpoint;
+        const existing = rsvps.find(r => r.status === 'push_subscription' && r.wish.includes(endpoint));
+
+        if (!existing) {
+          await supabase.db.saveRSVP('default', {
+            guest_name: userEmail || 'unknown',
+            status: 'push_subscription',
+            guest_count: 1,
+            side: navigator.userAgent || 'unknown',
+            wish: JSON.stringify(subscription),
+            created_at: new Date().toISOString()
+          });
+          console.log('Push subscription saved successfully to Supabase database!');
+        }
+        return subscription;
+      } catch (err) {
+        console.warn('Failed to subscribe user to Push:', err);
+        throw err;
       }
     }
   }

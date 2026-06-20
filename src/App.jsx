@@ -132,6 +132,16 @@ export default function App() {
       const timer = setTimeout(() => {
         Notification.requestPermission().then(permission => {
           console.log('Notification permission status:', permission);
+          if (permission === 'granted' && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(reg => {
+              supabase.auth.getUser().then(({ data: { user: freshUser } }) => {
+                if (freshUser) {
+                  supabase.db.subscribeToPush(reg, freshUser.email)
+                    .catch(e => console.log('Mount-push subscription failed:', e));
+                }
+              });
+            });
+          }
         });
       }, 2000);
       return () => {
@@ -144,6 +154,16 @@ export default function App() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Tự động đăng ký Web Push khi đăng nhập hoặc làm mới trang nếu quyền đã được cấp
+  useEffect(() => {
+    if (user && 'serviceWorker' in navigator && Notification.permission === 'granted') {
+      navigator.serviceWorker.ready.then(reg => {
+        supabase.db.subscribeToPush(reg, user.email)
+          .catch(err => console.log('Auto-subscribe push failed:', err));
+      });
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

@@ -862,12 +862,22 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
       return;
     }
 
-    if (Notification.permission === 'granted') {
+    const handleSubscription = () => {
       showTestNotification();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+          supabase.db.subscribeToPush(reg, user?.email || 'unknown')
+            .catch(err => console.log('Subscription from bell failed:', err));
+        });
+      }
+    };
+
+    if (Notification.permission === 'granted') {
+      handleSubscription();
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
-          showTestNotification();
+          handleSubscription();
         }
       });
     } else {
