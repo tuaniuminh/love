@@ -7,18 +7,21 @@ export default function ThemeToggle() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('tm_theme', theme);
     
+    // Check if running as iOS PWA standalone mode
+    const isIOSStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+    
     // Detect iOS (iPhone, iPad, iPod, and iPadOS desktop mode)
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || 
                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     
-    if (isIOS) {
-      // Remove theme-color meta tag on iOS to let Safari defaults / black-translucent overlay work perfectly
+    if (isIOS && isIOSStandalone) {
+      // Remove theme-color meta tag on iOS standalone PWA to let black-translucent overlay work perfectly
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
         metaThemeColor.remove();
       }
     } else {
-      // Update theme-color meta tag dynamically for PWA status bar sync on other platforms
+      // Update theme-color meta tag dynamically for Safari on iOS and other platforms/browsers
       let metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (!metaThemeColor) {
         metaThemeColor = document.createElement('meta');
