@@ -4,7 +4,7 @@
   "description": "Góc Kỷ Niệm Tình Yêu Của Linh Tuấn & Ngô Minh",
   "start_url": "./",
   "scope": "./",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1e1b4b",
   "theme_color": "#1e1b4b",
