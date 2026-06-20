@@ -66,7 +66,7 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
     // Permanent local file in the public folder, respecting base path (e.g. /love/)
     const baseUrl = import.meta.env.BASE_URL || '/';
     // Append version cache-buster query parameter to force browser to load the new faded MP3
-    const audioPath = baseUrl.endsWith('/') ? `${baseUrl}mot-doi.mp3?v=1.5.6` : `${baseUrl}/mot-doi.mp3?v=1.5.6`;
+    const audioPath = baseUrl.endsWith('/') ? `${baseUrl}mot-doi.mp3?v=1.5.7` : `${baseUrl}/mot-doi.mp3?v=1.5.7`;
     const aud = new Audio(audioPath);
     aud.loop = true;
     return aud;
