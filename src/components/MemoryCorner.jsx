@@ -56,6 +56,12 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
   const [animClass, setAnimClass] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
   
+  // Scheduled Reminders States
+  const [reminders, setReminders] = useState([]);
+  const [remTitle, setRemTitle] = useState('');
+  const [remMessage, setRemMessage] = useState('');
+  const [remTime, setRemTime] = useState('');
+  
   const [audio] = useState(() => {
     // Permanent local file in the public folder, respecting base path (e.g. /love/)
     const baseUrl = import.meta.env.BASE_URL || '/';
@@ -197,7 +203,7 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
     }
   }, [user, ALLOWED_COUPLE_EMAILS]);
 
-  // Tải dữ liệu từ database Supabase (hoặc localStorage dự phòng) khi tải trang
+  // Tải dữ liệu từ database Supabase (hoặc localStorage dự phòng) khi tải trang và định kỳ mỗi 90 giây
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -230,6 +236,22 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
             deviceInfo: parseDeviceFromUA(r.wish)
           }));
         setVisitLogs(visits);
+
+        // Lọc các dòng RSVP dùng riêng cho mục đích hẹn giờ lời nhắc (status = scheduled_reminder)
+        const parsedReminders = rsvps
+          .filter(r => r.status === 'scheduled_reminder')
+          .map(r => ({
+            id: r.id,
+            title: r.guest_name,
+            message: r.wish,
+            scheduledTime: r.side, // ISO string
+            isSent: parseInt(r.guest_count || 0) === 1,
+            createdAt: r.created_at
+          }));
+        
+        // Sắp xếp lời nhắc theo thứ tự mới nhất / hẹn giờ sớm nhất lên đầu
+        parsedReminders.sort((a, b) => new Date(b.scheduledTime) - new Date(a.scheduledTime));
+        setReminders(parsedReminders);
 
         // Lọc các dòng RSVP dùng riêng cho mục đích ghi chép sức khỏe (status = sickness_log)
         const logs = rsvps
@@ -353,6 +375,8 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
     };
 
     fetchLogs();
+    const refreshInterval = setInterval(fetchLogs, 90000); // 1.5 phút quét một lần để cập nhật lời nhắc từ xa
+    return () => clearInterval(refreshInterval);
   }, []);
 
   // Năm lọc mặc định (Năm hiện tại hoặc Tất cả)
@@ -437,6 +461,135 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
         console.error('Failed to delete sickness log from Cloud:', err);
         alert(`⚠️ Không thể xóa dữ liệu trên Supabase Cloud!\n\nChi tiết lỗi: ${err.message || JSON.stringify(err)}`);
       }
+    }
+  };
+
+  const handleAddReminder = async (e, title, message, timeStr) => {
+    e.preventDefault();
+    if (!canEdit || !title.trim() || !message.trim() || !timeStr) return;
+
+    const scheduledTimeIso = new Date(timeStr).toISOString();
+
+    const newReminder = {
+      guest_name: title.trim(),
+      status: 'scheduled_reminder',
+      guest_count: 0,
+      side: scheduledTimeIso,
+      wish: message.trim(),
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      const res = await supabase.db.saveRSVP('default', newReminder);
+      if (res.data) {
+        const savedReminder = {
+          id: res.data.id,
+          title: res.data.guest_name,
+          message: res.data.wish,
+          scheduledTime: res.data.side,
+          isSent: false,
+          createdAt: res.data.created_at
+        };
+        setReminders(prev => {
+          const updated = [savedReminder, ...prev];
+          updated.sort((a, b) => new Date(b.scheduledTime) - new Date(a.scheduledTime));
+          return updated;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save scheduled reminder:', err);
+      alert(`⚠️ Không thể lưu lịch nhắc: ${err.message || JSON.stringify(err)}`);
+    }
+  };
+
+  const handleDeleteReminder = async (id) => {
+    if (!canEdit) return;
+    const confirmDelete = window.confirm("Anh có chắc chắn muốn hủy lịch nhắc này không? ⏰");
+    if (confirmDelete) {
+      try {
+        await supabase.db.deleteRSVP(id);
+        setReminders(prev => prev.filter(r => r.id !== id));
+      } catch (err) {
+        console.error('Failed to delete reminder:', err);
+        alert(`⚠️ Không thể xóa lịch nhắc: ${err.message || JSON.stringify(err)}`);
+      }
+    }
+  };
+
+  // Trình quét kiểm tra thông báo đặt lịch (Background Checker)
+  useEffect(() => {
+    const checkScheduledReminders = async () => {
+      const now = new Date();
+      
+      const dueReminders = reminders.filter(r => {
+        if (r.isSent) return false;
+        const schedTime = new Date(r.scheduledTime);
+        return schedTime <= now;
+      });
+
+      if (dueReminders.length === 0) return;
+
+      console.log(`⏰ Lời nhắc đến giờ hẹn: ${dueReminders.length} cái`);
+
+      for (const reminder of dueReminders) {
+        triggerSystemNotification(reminder.title, reminder.message);
+
+        try {
+          setReminders(prev => prev.map(r => r.id === reminder.id ? { ...r, isSent: true } : r));
+
+          await supabase.db.saveRSVP('default', {
+            id: reminder.id,
+            guest_name: reminder.title,
+            status: 'scheduled_reminder',
+            guest_count: 1,
+            side: reminder.scheduledTime,
+            wish: reminder.message,
+            created_at: reminder.createdAt
+          });
+          console.log(`✅ Cập nhật CSDL đã gửi: ${reminder.title}`);
+        } catch (err) {
+          console.error(`⚠️ Lỗi cập nhật CSDL trạng thái gửi:`, err);
+        }
+      }
+    };
+
+    checkScheduledReminders();
+    const intervalId = setInterval(checkScheduledReminders, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [reminders]);
+
+  const triggerSystemNotification = (title, body) => {
+    if (!('Notification' in window)) return;
+    
+    if (Notification.permission !== 'granted') {
+      console.warn("⚠️ Chưa cấp quyền thông báo, bỏ qua gửi lời nhắc hẹn giờ.");
+      return;
+    }
+
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const logoPath = baseUrl.endsWith('/') ? `${baseUrl}logo_pwa_small.png` : `${baseUrl}/logo_pwa_small.png`;
+    const absoluteLogoUrl = new URL(logoPath, window.location.href).href;
+
+    const options = {
+      body: body,
+      icon: absoluteLogoUrl,
+      badge: absoluteLogoUrl,
+      vibrate: [100, 50, 100],
+      tag: `scheduled-reminder-${Date.now()}`,
+      renotify: true
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.showNotification(title, options)
+          .catch(err => {
+            console.warn("SW showNotification failed, using fallback:", err);
+            new Notification(title, options);
+          });
+      });
+    } else {
+      new Notification(title, options);
     }
   };
 
@@ -1760,103 +1913,211 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
       ))}
 
       {viewMode === 'admin' ? (
-        /* ADMIN VISIT TRACKING DASHBOARD */
+        /* ADMIN VIEW */
         canEdit && (
-          <div className="health-card admin-dashboard" style={{ marginTop: '0', animation: 'fadeIn 0.4s ease' }}>
-            {/* Admin Header */}
-            <div className="health-title-box" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-              <span style={{ fontSize: '1.8rem' }}>📊</span>
-              <h3 className="health-title">Nhật Ký Truy Cập Của Em Iu</h3>
-            </div>
-
-            {/* Member Name */}
-            <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-              Đang theo dõi: <strong style={{ color: 'var(--accent-primary)' }}>{ALLOWED_COUPLE_EMAILS.filter(email => email !== user.email).join(', ') || 'Chưa cấu hình email em iu'}</strong>
-            </p>
-
-            {/* Quick Statistics Grid */}
-            <div className="stats-grid" style={{ marginBottom: '2rem' }}>
-              <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📈</span>
-                <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                  {visitLogs.length}
-                </span>
-                <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Tổng số lần truy cập</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%', alignItems: 'center', maxWidth: '580px', margin: '0 auto' }}>
+            
+            {/* CARD 1: ĐẶT LỊCH LỜI NHẮC YÊU THƯƠNG */}
+            <div className="health-card admin-reminders" style={{ marginTop: '0', animation: 'fadeIn 0.4s ease', width: '100%' }}>
+              <div className="health-title-box" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                <span style={{ fontSize: '1.8rem' }}>⏰</span>
+                <h3 className="health-title">Đặt Lịch Lời Nhắc Yêu Thương</h3>
               </div>
+              <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.4', textAlign: 'center' }}>
+                Lên lịch gửi thông báo nhắc nhở tự động đến thiết bị của em iu Ngô Minh
+              </p>
 
-              <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗓️</span>
-                <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                  {(() => {
-                    // Count current month visits (Vietnam local time)
-                    const now = new Date();
-                    const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
-                    const stats = getVisitStats();
-                    return stats[currentMonthStr]?.total || 0;
-                  })()}
-                </span>
-                <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Truy cập trong tháng</span>
-              </div>
-
-              <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>☀️</span>
-                <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
-                  {(() => {
-                    // Count today's visits (Vietnam local time)
-                    const now = new Date();
-                    const todayStr = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
-                    const stats = getVisitStats();
-                    const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
-                    return stats[currentMonthStr]?.days[todayStr] || 0;
-                  })()}
-                </span>
-                <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Truy cập hôm nay</span>
-              </div>
-            </div>
-
-            {/* Grouped Visits Calendar Details */}
-            <div className="admin-visits-details" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, borderLeft: '4px solid var(--accent-primary)', paddingLeft: '0.5rem' }}>Chi tiết lượt truy cập qua các ngày</h4>
-              
-              {visitLogs.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', textAlign: 'center', padding: '1.5rem 0' }}>Chưa có dữ liệu truy cập nào được ghi nhận 📭</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {Object.entries(getVisitStats()).map(([month, monthData]) => (
-                    <div key={month} className="glass-panel" style={{ padding: '1.25rem', borderRadius: '18px', border: '1px solid rgba(99, 102, 241, 0.1)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.5rem' }}>
-                        <span>📅 Tháng {month}</span>
-                        <span style={{ background: 'var(--accent-primary)', color: 'white', padding: '0.2rem 0.75rem', borderRadius: '50px', fontSize: '0.8rem' }}>{monthData.total} lần</span>
-                      </div>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                        {Object.entries(monthData.days)
-                          .sort((a, b) => {
-                            // Sort days in descending order (newest day first)
-                            const parseDate = (dStr) => {
-                              const [d, m, y] = dStr.split('/').map(Number);
-                              return new Date(y, m - 1, d);
-                            };
-                            return parseDate(b[0]) - parseDate(a[0]);
-                          })
-                          .map(([day, count]) => (
-                            <div key={day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 550 }}>
-                              <span style={{ color: 'var(--text-secondary)' }}>🗓️ Ngày {day}</span>
-                              <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{count} lần</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  ))}
+              <form onSubmit={(e) => {
+                handleAddReminder(e, remTitle, remMessage, remTime);
+                setRemTitle('');
+                setRemMessage('');
+                setRemTime('');
+              }} style={{ textAlign: 'left', marginBottom: '2.5rem' }}>
+                
+                <div className="health-form-group">
+                  <label className="health-form-label">⏰ Thời gian gửi thông báo:</label>
+                  <input 
+                    type="datetime-local" 
+                    className="health-input"
+                    value={remTime}
+                    onChange={(e) => setRemTime(e.target.value)}
+                    required 
+                  />
                 </div>
-              )}
+
+                <div className="health-form-group">
+                  <label className="health-form-label">✍️ Tiêu đề thông báo:</label>
+                  <input 
+                    type="text" 
+                    className="health-input"
+                    placeholder="Ví dụ: Lời nhắc từ anh Tuấn ❤️, Chú ý em iu ơi! 🥤"
+                    value={remTitle}
+                    onChange={(e) => setRemTitle(e.target.value)}
+                    required 
+                  />
+                </div>
+
+                <div className="health-form-group">
+                  <label className="health-form-label">✍️ Nội dung lời nhắc:</label>
+                  <textarea 
+                    className="health-textarea"
+                    rows={3}
+                    placeholder="Nhập nội dung lời nhắn gửi đến em iu..."
+                    value={remMessage}
+                    onChange={(e) => setRemMessage(e.target.value)}
+                    required 
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="health-btn health-btn-primary"
+                  style={{ width: '100%', marginTop: '0.5rem' }}
+                >
+                  Lên lịch ngay ❤️
+                </button>
+              </form>
+
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, borderLeft: '4px solid var(--accent-primary)', paddingLeft: '0.5rem', textAlign: 'left', marginBottom: '1rem' }}>
+                Danh sách lời nhắc đã lên lịch
+              </h4>
+
+              <div className="health-timeline" style={{ maxHeight: '300px' }}>
+                {reminders.length === 0 ? (
+                  <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic', margin: '2rem 0' }}>
+                    Chưa có lịch nhắc nào được lên lịch 📭
+                  </p>
+                ) : (
+                  reminders.map(rem => {
+                    const schedDate = new Date(rem.scheduledTime);
+                    const formattedTime = schedDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + schedDate.toLocaleDateString('vi-VN');
+                    return (
+                      <div key={rem.id} className="health-log-item" style={{ minHeight: 'auto', gap: '0.75rem', padding: '1rem' }}>
+                        <div className="health-log-icon" style={{ width: '42px', height: '42px', fontSize: '1.3rem', padding: 0 }}>
+                          {rem.isSent ? '✅' : '⏳'}
+                        </div>
+                        <div className="health-log-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <div className="health-log-header">
+                            <span className="health-log-type">{rem.title}</span>
+                            <span className="health-log-date" style={{ color: rem.isSent ? 'var(--success)' : 'var(--warning)' }}>
+                              {rem.isSent ? 'Đã gửi' : 'Chờ gửi'}
+                            </span>
+                          </div>
+                          <p className="health-log-notes" style={{ fontSize: '0.85rem' }}>{rem.message}</p>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, marginTop: '0.2rem' }}>
+                            📅 Hẹn lúc: {formattedTime}
+                          </span>
+                        </div>
+                        <button 
+                          className="health-delete-btn" 
+                          onClick={() => handleDeleteReminder(rem.id)}
+                          title="Hủy lịch nhắc này"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
-            {/* Recent Timeline of Visits */}
-            <div className="admin-visits-timeline" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, borderLeft: '4px solid var(--accent-primary)', paddingLeft: '0.5rem' }}>Lịch sử 10 lần truy cập gần nhất</h4>
-              
-              <div className="health-timeline" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+            {/* CARD 2: NHẬT KÝ TRUY CẬP CỦA EM IU */}
+            <div className="health-card admin-dashboard" style={{ marginTop: '0', animation: 'fadeIn 0.4s ease', width: '100%' }}>
+              {/* Admin Header */}
+              <div className="health-title-box" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
+                <span style={{ fontSize: '1.8rem' }}>📊</span>
+                <h3 className="health-title">Nhật Ký Truy Cập Của Em Iu</h3>
+              </div>
+
+              {/* Member Name */}
+              <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '1.5rem', textAlign: 'center' }}>
+                Đang theo dõi: <strong style={{ color: 'var(--accent-primary)' }}>{ALLOWED_COUPLE_EMAILS.filter(email => email !== user.email).join(', ') || 'Chưa cấu hình email em iu'}</strong>
+              </p>
+
+              {/* Quick Statistics Grid */}
+              <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+                <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                  <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📈</span>
+                  <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                    {visitLogs.length}
+                  </span>
+                  <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Tổng số lần truy cập</span>
+                </div>
+
+                <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                  <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🗓️</span>
+                  <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                    {(() => {
+                      // Count current month visits (Vietnam local time)
+                      const now = new Date();
+                      const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+                      const stats = getVisitStats();
+                      return stats[currentMonthStr]?.total || 0;
+                    })()}
+                  </span>
+                  <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Truy cập trong tháng</span>
+                </div>
+
+                <div className="stats-item glass-panel" style={{ padding: '1rem', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                  <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>☀️</span>
+                  <span className="stats-val" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--accent-primary)' }}>
+                    {(() => {
+                      // Count today's visits (Vietnam local time)
+                      const now = new Date();
+                      const todayStr = String(now.getDate()).padStart(2, '0') + '/' + String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+                      const stats = getVisitStats();
+                      const currentMonthStr = String(now.getMonth() + 1).padStart(2, '0') + '/' + now.getFullYear();
+                      return stats[currentMonthStr]?.days[todayStr] || 0;
+                    })()}
+                  </span>
+                  <span className="stats-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Truy cập hôm nay</span>
+                </div>
+              </div>
+
+              {/* Grouped Visits Calendar Details */}
+              <div className="admin-visits-details" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, borderLeft: '4px solid var(--accent-primary)', paddingLeft: '0.5rem', textAlign: 'left' }}>Chi tiết lượt truy cập qua các ngày</h4>
+                
+                {visitLogs.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', textAlign: 'center', padding: '1.5rem 0' }}>Chưa có dữ liệu truy cập nào được ghi nhận 📭</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {Object.entries(getVisitStats()).map(([month, monthData]) => (
+                      <div key={month} className="glass-panel" style={{ padding: '1.25rem', borderRadius: '18px', border: '1px solid rgba(99, 102, 241, 0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.5rem' }}>
+                          <span>📅 Tháng {month}</span>
+                          <span style={{ background: 'var(--accent-primary)', color: 'white', padding: '0.2rem 0.75rem', borderRadius: '50px', fontSize: '0.8rem' }}>{monthData.total} lần</span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                          {Object.entries(monthData.days)
+                            .sort((a, b) => {
+                              // Sort days in descending order (newest day first)
+                              const parseDate = (dStr) => {
+                                const [d, m, y] = dStr.split('/').map(Number);
+                                return new Date(y, m - 1, d);
+                              };
+                              return parseDate(b[0]) - parseDate(a[0]);
+                            })
+                            .map(([day, count]) => (
+                              <div key={day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 550 }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>🗓️ Ngày {day}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{count} lần</span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Timeline of Visits */}
+              <div className="admin-visits-timeline" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h4 style={{ fontSize: '1.1rem', fontWeight: 700, borderLeft: '4px solid var(--accent-primary)', paddingLeft: '0.5rem', textAlign: 'left' }}>Lịch sử 10 lần truy cập gần nhất</h4>
+                
+                <div className="health-timeline" style={{ maxHeight: '280px', overflowY: 'auto' }}>
                 {visitLogs.slice(0, 10).map((log, index) => {
                   const logDate = new Date(log.timestamp);
                   const ictMs = logDate.getTime() + (7 * 60 * 60 * 1000);
@@ -1887,7 +2148,8 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
                 })}
               </div>
             </div>
-          </div>
+          </div> {/* Closes Card 2 */}
+          </div> {/* Closes the outer container div */}
         )
       ) : (
         /* STANDARD VIEW */
