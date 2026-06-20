@@ -2148,8 +2148,8 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
                 })}
               </div>
             </div>
-          </div> {/* Closes Card 2 */}
-          </div> {/* Closes the outer container div */}
+          </div>
+          </div>
         )
       ) : (
         /* STANDARD VIEW */
