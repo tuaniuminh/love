@@ -157,7 +157,7 @@ export default function App() {
 
   // Tự động đăng ký Web Push khi đăng nhập hoặc làm mới trang nếu quyền đã được cấp
   useEffect(() => {
-    if (user && 'serviceWorker' in navigator && Notification.permission === 'granted') {
+    if (user && 'serviceWorker' in navigator && 'Notification' in window && Notification.permission === 'granted') {
       navigator.serviceWorker.ready.then(reg => {
         supabase.db.subscribeToPush(reg, user.email)
           .catch(err => console.log('Auto-subscribe push failed:', err));
@@ -264,7 +264,7 @@ export default function App() {
       <footer>
         <p>© 2026 Linh Tuấn ❤️ Ngô Minh</p>
         <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
-          Phiên bản v1.5.3 •{' '}
+          Phiên bản v1.5.4 •{' '}
           <button 
             onClick={handleCheckUpdate} 
             className="btn-update-check" 
