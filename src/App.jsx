@@ -127,6 +127,19 @@ export default function App() {
       }
     });
 
+    // Yêu cầu cấp quyền thông báo khi khởi động ứng dụng (trì hoãn 2s để có trải nghiệm mượt mà)
+    if ('Notification' in window && Notification.permission === 'default') {
+      const timer = setTimeout(() => {
+        Notification.requestPermission().then(permission => {
+          console.log('Notification permission status:', permission);
+        });
+      }, 2000);
+      return () => {
+        subscription.unsubscribe();
+        clearTimeout(timer);
+      };
+    }
+
     return () => {
       subscription.unsubscribe();
     };
@@ -231,7 +244,7 @@ export default function App() {
       <footer>
         <p>© 2026 Linh Tuấn ❤️ Ngô Minh</p>
         <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
-          Phiên bản v1.3.6 •{' '}
+          Phiên bản v1.4.0 •{' '}
           <button 
             onClick={handleCheckUpdate} 
             className="btn-update-check" 

@@ -69,7 +69,8 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
   useEffect(() => {
     if ('mediaSession' in navigator && audio) {
       const baseUrl = import.meta.env.BASE_URL || '/';
-      const logoPath = baseUrl.endsWith('/') ? `${baseUrl}logo_pwa.png` : `${baseUrl}/logo_pwa.png`;
+      // Sử dụng ảnh bìa nhẹ dưới 100KB logo_pwa_small.png cho cả iOS 16 để tránh lỗi crash màn hình khóa
+      const logoPath = baseUrl.endsWith('/') ? `${baseUrl}logo_pwa_small.png` : `${baseUrl}/logo_pwa_small.png`;
       const absoluteLogoUrl = new URL(logoPath, window.location.href).href;
       
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -77,10 +78,10 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
         artist: 'Linh Tuấn ❤️ Ngô Minh',
         album: 'WeLove - Góc Kỷ Niệm',
         artwork: [
-          { src: absoluteLogoUrl, sizes: '512x512', type: 'image/png' },
-          { src: absoluteLogoUrl, sizes: '384x384', type: 'image/png' },
+          { src: absoluteLogoUrl, sizes: '192x192', type: 'image/png' },
           { src: absoluteLogoUrl, sizes: '256x256', type: 'image/png' },
-          { src: absoluteLogoUrl, sizes: '192x192', type: 'image/png' }
+          { src: absoluteLogoUrl, sizes: '384x384', type: 'image/png' },
+          { src: absoluteLogoUrl, sizes: '512x512', type: 'image/png' }
         ]
       });
 
@@ -701,6 +702,53 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
     setTouchStartX(null);
   };
 
+  const triggerLocalNotification = (e) => {
+    e.stopPropagation();
+    if (!('Notification' in window)) {
+      alert('Trình duyệt của bạn không hỗ trợ hiển thị thông báo.');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      showTestNotification();
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          showTestNotification();
+        }
+      });
+    } else {
+      alert('Quyền thông báo đang bị chặn. Vui lòng vào Cài đặt để bật quyền thông báo cho ứng dụng!');
+    }
+  };
+
+  const showTestNotification = () => {
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const logoPath = baseUrl.endsWith('/') ? `${baseUrl}logo_pwa_small.png` : `${baseUrl}/logo_pwa_small.png`;
+    const absoluteLogoUrl = new URL(logoPath, window.location.href).href;
+
+    const options = {
+      body: 'Gửi ngàn lời yêu thương và cái ôm ấm áp đến em iu Ngô Minh! Chúc em một ngày ngập tràn hạnh phúc! ❤️',
+      icon: absoluteLogoUrl,
+      badge: absoluteLogoUrl,
+      vibrate: [100, 50, 100],
+      tag: 'welove-love-note',
+      renotify: true
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.showNotification('WeLove - Lời Yêu Thương', options)
+          .catch(err => {
+            console.warn("SW showNotification failed, falling back to Notification constructor:", err);
+            new Notification('WeLove - Lời Yêu Thương', options);
+          });
+      });
+    } else {
+      new Notification('WeLove - Lời Yêu Thương', options);
+    }
+  };
+
   return (
     <div className="memory-page" onClick={handleScreenClick}>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -1006,6 +1054,35 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
           animation: rotateDisk 3s linear infinite;
           box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
           background: rgba(244, 63, 94, 0.15);
+        }
+
+        .notification-test-btn {
+          position: absolute;
+          top: 1.5rem;
+          left: 1.5rem;
+          background: rgba(99, 102, 241, 0.1);
+          border: 1px solid rgba(99, 102, 241, 0.2);
+          color: var(--accent-primary);
+          font-size: 1.3rem;
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          z-index: 10;
+          transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+          box-shadow: 0 4px 10px rgba(99, 102, 241, 0.15);
+        }
+        
+        .notification-test-btn:hover {
+          background: rgba(99, 102, 241, 0.2);
+          transform: scale(1.1);
+        }
+        
+        .notification-test-btn:active {
+          transform: scale(0.95);
         }
         
         @keyframes rotateDisk {
@@ -1823,6 +1900,15 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
           title={isPlaying ? "Tạm dừng nhạc" : "Phát nhạc lãng mạn"}
         >
           {isPlaying ? '🎵' : '🔇'}
+        </button>
+
+        {/* Floating Test Notification Button */}
+        <button 
+          className="notification-test-btn" 
+          onClick={triggerLocalNotification} 
+          title="Nhận thông báo yêu thương thử nghiệm"
+        >
+          🔔
         </button>
 
         <div className="heart-pulsing" title="Click me for a surprise!">💝</div>

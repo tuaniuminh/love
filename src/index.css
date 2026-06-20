@@ -743,3 +743,15 @@ button,
     width: 100%;
   }
 }
+
+/* Hide scrollbars when running as a PWA in standalone mode */
+@media (display-mode: standalone) {
+  ::-webkit-scrollbar {
+    display: none !important;
+  }
+  html, body {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
