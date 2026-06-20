@@ -1,7 +1,7 @@
 {
-  "name": "Linh Tuấn ❤️ Ngô Minh - Góc Kỷ Niệm",
-  "short_name": "Tình Yêu",
-  "description": "Góc Kỷ Niệm Tình Yêu Của Linh Tuấn & Ngô Minh",
+  "name": "WeLove",
+  "short_name": "WeLove",
+  "description": "WeLove - Góc Kỷ Niệm Tình Yêu Của Linh Tuấn & Ngô Minh",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
