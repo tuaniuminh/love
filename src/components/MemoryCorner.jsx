@@ -65,6 +65,42 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
     return aud;
   });
 
+  // Thiết lập Media Session Metadata (Hình nền nhạc, tên bài hát, ca sĩ trên màn hình khóa điện thoại)
+  useEffect(() => {
+    if ('mediaSession' in navigator && audio) {
+      const baseUrl = import.meta.env.BASE_URL || '/';
+      const logoPath = baseUrl.endsWith('/') ? `${baseUrl}logo_pwa.png` : `${baseUrl}/logo_pwa.png`;
+      
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Một Đời',
+        artist: 'Linh Tuấn ❤️ Ngô Minh',
+        album: 'WeLove - Góc Kỷ Niệm',
+        artwork: [
+          { src: logoPath, sizes: '512x512', type: 'image/png' },
+          { src: logoPath, sizes: '384x384', type: 'image/png' },
+          { src: logoPath, sizes: '256x256', type: 'image/png' },
+          { src: logoPath, sizes: '192x192', type: 'image/png' }
+        ]
+      });
+
+      // Điều khiển nhạc từ màn hình khóa / tai nghe
+      navigator.mediaSession.setActionHandler('play', () => {
+        audio.play().then(() => setIsPlaying(true)).catch(err => console.error("MediaSession play error:", err));
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        audio.pause();
+        setIsPlaying(false);
+      });
+    }
+  }, [audio]);
+
+  // Đồng bộ trạng thái chơi nhạc với màn hình khóa
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  }, [isPlaying]);
+
   // Lấy danh sách email cặp đôi được phép truy cập
   const ALLOWED_COUPLE_EMAILS = import.meta.env.VITE_ALLOWED_COUPLE_EMAILS
     ? import.meta.env.VITE_ALLOWED_COUPLE_EMAILS.split(',').map(email => email.trim())
