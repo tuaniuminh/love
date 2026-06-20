@@ -68,38 +68,96 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
     const audioPath = baseUrl.endsWith('/') ? `${baseUrl}mot-doi.mp3` : `${baseUrl}/mot-doi.mp3`;
     const aud = new Audio(audioPath);
     aud.loop = true;
+    aud.volume = 0; // Initialize native volume to 0 to prevent loud first second
     return aud;
   });
 
-  // Fade-in volume helper to start music softly and get louder gradually
-  const fadeInAudio = (aud) => {
-    if (!aud) return;
-    if (aud.fadeInterval) {
-      clearInterval(aud.fadeInterval);
-    }
-    aud.volume = 0;
-    const targetVolume = 0.8;
-    const duration = 3000; // 3 seconds fade-in
-    const step = 0.02; // Increment step
-    const intervalTime = duration / (targetVolume / step);
+  // Lazy Web Audio API initializer (crucial for iOS volume control support)
+  const initWebAudio = (aud) => {
+    if (!aud) return null;
+    if (aud.webAudioInitialized) return aud.gainNode;
     
-    aud.fadeInterval = setInterval(() => {
-      if (aud.volume < targetVolume) {
-        aud.volume = Math.min(targetVolume, aud.volume + step);
-      } else {
-        clearInterval(aud.fadeInterval);
-        aud.fadeInterval = null;
-      }
-    }, intervalTime);
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return null;
+      
+      const ctx = new AudioContextClass();
+      const source = ctx.createMediaElementSource(aud);
+      const gain = ctx.createGain();
+      
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      
+      aud.webAudioContext = ctx;
+      aud.gainNode = gain;
+      aud.webAudioInitialized = true;
+      
+      return gain;
+    } catch (e) {
+      console.warn("Failed to initialize Web Audio API:", e);
+      return null;
+    }
   };
 
-  // Pause audio and clear any ongoing fade interval
+  // Fade-in volume helper supporting both standard HTML5 volume and Web Audio API (for iOS compatibility)
+  const fadeInAudio = (aud) => {
+    if (!aud) return;
+    
+    // Attempt to initialize Web Audio API (especially for iOS where direct .volume is read-only)
+    const gainNode = initWebAudio(aud);
+    
+    if (aud.fadeInterval) {
+      clearInterval(aud.fadeInterval);
+      aud.fadeInterval = null;
+    }
+    
+    if (aud.webAudioContext && aud.webAudioContext.state === 'suspended') {
+      aud.webAudioContext.resume().catch(e => console.log("AudioContext resume failed:", e));
+    }
+    
+    const targetVolume = 0.8;
+    const duration = 3000; // 3 seconds fade-in
+    
+    if (gainNode && aud.webAudioContext) {
+      const ctx = aud.webAudioContext;
+      // Web Audio API smooth ramping (guarantees fade-in on iOS)
+      gainNode.gain.cancelScheduledValues(ctx.currentTime);
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(targetVolume, ctx.currentTime + duration / 1000);
+      
+      // Keep native volume at target so fallback or queries return correct values
+      aud.volume = targetVolume;
+    } else {
+      // Standard HTML5 volume fade-in (Android / Desktop fallback)
+      aud.volume = 0;
+      const step = 0.02; // Increment step
+      const intervalTime = duration / (targetVolume / step);
+      
+      aud.fadeInterval = setInterval(() => {
+        if (aud.volume < targetVolume) {
+          aud.volume = Math.min(targetVolume, aud.volume + step);
+        } else {
+          clearInterval(aud.fadeInterval);
+          aud.fadeInterval = null;
+        }
+      }, intervalTime);
+    }
+  };
+
+  // Pause audio and clear any ongoing fade interval or Web Audio schedules
   const pauseAudio = (aud) => {
     if (!aud) return;
     if (aud.fadeInterval) {
       clearInterval(aud.fadeInterval);
       aud.fadeInterval = null;
     }
+    
+    if (aud.gainNode && aud.webAudioContext) {
+      const ctx = aud.webAudioContext;
+      aud.gainNode.gain.cancelScheduledValues(ctx.currentTime);
+      aud.gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    }
+    
     aud.pause();
   };
 
