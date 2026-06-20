@@ -679,15 +679,9 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
           align-items: center;
           justify-content: center;
           padding: 2rem 1rem;
-          background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fdf4ff 100%);
-          border-radius: 30px;
-          box-shadow: var(--glass-shadow);
+          background: transparent;
           transition: var(--theme-transition);
           user-select: none;
-        }
-
-        [data-theme='dark'] .memory-page {
-          background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 50%, #4c0519 100%);
         }
 
         /* Floating background hearts */
@@ -1560,10 +1554,8 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
           box-shadow: 0 6px 20px rgba(225, 29, 72, 0.3);
         }
 
-        /* Responsive */
         @media (max-width: 600px) {
           .memory-page {
-            border-radius: 20px;
             padding: 1rem 0.5rem;
           }
           .memory-card {

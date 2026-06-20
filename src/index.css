@@ -13,6 +13,7 @@
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-tertiary: #f1f5f9;
+  --bg-gradient: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fdf4ff 100%);
   
   --text-primary: #0f172a;
   --text-secondary: #475569;
@@ -46,6 +47,7 @@
   --bg-primary: #090d16;
   --bg-secondary: #111827;
   --bg-tertiary: #1f2937;
+  --bg-gradient: linear-gradient(135deg, #1e1b4b 0%, #2e1065 50%, #4c0519 100%);
   
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
@@ -83,7 +85,7 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--bg-primary);
+  background: var(--bg-gradient) no-repeat fixed;
   color: var(--text-primary);
   line-height: 1.6;
   overflow-x: hidden;

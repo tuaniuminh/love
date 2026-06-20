@@ -231,7 +231,7 @@ export default function App() {
       <footer>
         <p>© 2026 Linh Tuấn ❤️ Ngô Minh</p>
         <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
-          Phiên bản v1.2.5 •{' '}
+          Phiên bản v1.2.6 •{' '}
           <button 
             onClick={handleCheckUpdate} 
             className="btn-update-check" 
