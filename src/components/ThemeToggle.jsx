@@ -7,14 +7,26 @@ export default function ThemeToggle() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('tm_theme', theme);
     
-    // Update theme-color meta tag dynamically for PWA status bar sync
-    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (!metaThemeColor) {
-      metaThemeColor = document.createElement('meta');
-      metaThemeColor.name = 'theme-color';
-      document.head.appendChild(metaThemeColor);
+    // Check if running as iOS PWA standalone mode
+    const isIOSStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    
+    if (isIOSStandalone && isIOS) {
+      // Remove theme-color meta tag to let black-translucent status bar overlay work
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.remove();
+      }
+    } else {
+      // Update theme-color meta tag dynamically for PWA status bar sync on other platforms
+      let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (!metaThemeColor) {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.name = 'theme-color';
+        document.head.appendChild(metaThemeColor);
+      }
+      metaThemeColor.content = theme === 'light' ? '#fff1f2' : '#1e1b4b';
     }
-    metaThemeColor.content = theme === 'light' ? '#fff1f2' : '#1e1b4b';
   }, [theme]);
 
   const toggleTheme = () => {
