@@ -1,11 +1,12 @@
-const CACHE_NAME = 'love-app-cache-v1.3.6';
+const CACHE_NAME = 'love-app-cache-v1.4.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './favicon.svg',
   './icons.svg',
   './manifest.json',
-  './logo_pwa.png'
+  './logo_pwa.png',
+  './logo_pwa_small.png'
 ];
 
 // Install Event: Cache core static assets
@@ -91,4 +92,54 @@ self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+});
+
+// Push Event: Handle incoming push notifications from server
+self.addEventListener('push', event => {
+  let data = { title: 'WeLove', body: 'Bạn có một lời nhắn yêu thương mới! ❤️' };
+  
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: 'WeLove', body: event.data.text() };
+    }
+  }
+
+  const logoPath = './logo_pwa_small.png';
+  const options = {
+    body: data.body,
+    icon: logoPath,
+    badge: logoPath,
+    vibrate: [100, 50, 100],
+    data: data.data || { url: './' }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Notification Click Event: Focus app or open URL when notification is clicked
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  
+  const targetUrl = event.notification.data?.url || './';
+  
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      // If a window client is already open, focus it
+      for (const client of clientList) {
+        const clientUrl = new URL(client.url, self.location.href);
+        const targetParsedUrl = new URL(targetUrl, self.location.href);
+        if (clientUrl.pathname === targetParsedUrl.pathname && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise, open a new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
 });
