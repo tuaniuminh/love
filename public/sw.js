@@ -1,4 +1,4 @@
-const CACHE_NAME = 'love-app-cache-v1.5.8';
+const CACHE_NAME = 'love-app-cache-v1.6.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
