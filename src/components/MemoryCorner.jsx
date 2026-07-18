@@ -62,6 +62,8 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
   const [remMessage, setRemMessage] = useState('');
   const [remTime, setRemTime] = useState('');
   
+  const fileInputRef = useRef(null);
+  
   const [audio] = useState(() => {
     // Permanent local file in the public folder, respecting base path (e.g. /love/)
     const baseUrl = import.meta.env.BASE_URL || '/';
@@ -205,180 +207,307 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
   }, [user, ALLOWED_COUPLE_EMAILS]);
 
   // Tải dữ liệu từ database Supabase (hoặc localStorage dự phòng) khi tải trang và định kỳ mỗi 90 giây
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        // Kiểm tra thực tế kết nối tới database nếu cấu hình Supabase đã được nạp
-        if (supabase && !supabase.isMock) {
-          try {
-            const { error: checkError } = await supabase
-              .from('tuanminh_wedding_rsvps')
-              .select('id')
-              .limit(1);
-            if (checkError) {
-              console.error('Supabase connection check error:', checkError);
-              setDbError(checkError.message || JSON.stringify(checkError));
-            }
-          } catch (e) {
-            console.error('Supabase connection exception:', e);
-            setDbError(e.message || 'Lỗi kết nối mạng');
+  // Tải dữ liệu từ database Supabase (hoặc localStorage dự phòng) khi tải trang và định kỳ mỗi 90 giây
+  const fetchLogs = async () => {
+    try {
+      // Kiểm tra thực tế kết nối tới database nếu cấu hình Supabase đã được nạp
+      if (supabase && !supabase.isMock) {
+        try {
+          const { error: checkError } = await supabase
+            .from('tuanminh_wedding_rsvps')
+            .select('id')
+            .limit(1);
+          if (checkError) {
+            console.error('Supabase connection check error:', checkError);
+            setDbError(checkError.message || JSON.stringify(checkError));
           }
+        } catch (e) {
+          console.error('Supabase connection exception:', e);
+          setDbError(e.message || 'Lỗi kết nối mạng');
         }
+      }
 
-        const rsvps = await supabase.db.getRSVPs('default');
+      const rsvps = await supabase.db.getRSVPs('default');
 
-        // Lọc các lượt truy cập của thành viên khác
-        const visits = rsvps
-          .filter(r => r.status === 'member_visit')
-          .map(r => ({
-            id: r.id,
-            email: r.guest_name,
-            timestamp: r.created_at || new Date().toISOString(),
-            deviceInfo: parseDeviceFromUA(r.wish)
-          }));
-        setVisitLogs(visits);
+      // Lọc các lượt truy cập của thành viên khác
+      const visits = rsvps
+        .filter(r => r.status === 'member_visit')
+        .map(r => ({
+          id: r.id,
+          email: r.guest_name,
+          timestamp: r.created_at || new Date().toISOString(),
+          deviceInfo: parseDeviceFromUA(r.wish)
+        }));
+      setVisitLogs(visits);
 
-        // Lọc các dòng RSVP dùng riêng cho mục đích hẹn giờ lời nhắc (status = scheduled_reminder)
-        const parsedReminders = rsvps
-          .filter(r => r.status === 'scheduled_reminder')
-          .map(r => ({
-            id: r.id,
-            title: r.guest_name,
-            message: r.wish,
-            scheduledTime: r.side, // ISO string
-            isSent: parseInt(r.guest_count || 0) === 1,
-            createdAt: r.created_at
-          }));
-        
-        // Sắp xếp lời nhắc theo thứ tự mới nhất / hẹn giờ sớm nhất lên đầu
-        parsedReminders.sort((a, b) => new Date(b.scheduledTime) - new Date(a.scheduledTime));
-        setReminders(parsedReminders);
+      // Lọc các dòng RSVP dùng riêng cho mục đích hẹn giờ lời nhắc (status = scheduled_reminder)
+      const parsedReminders = rsvps
+        .filter(r => r.status === 'scheduled_reminder')
+        .map(r => ({
+          id: r.id,
+          title: r.guest_name,
+          message: r.wish,
+          scheduledTime: r.side, // ISO string
+          isSent: parseInt(r.guest_count || 0) === 1,
+          createdAt: r.created_at
+        }));
+      
+      // Sắp xếp lời nhắc theo thứ tự mới nhất / hẹn giờ sớm nhất lên đầu
+      parsedReminders.sort((a, b) => new Date(b.scheduledTime) - new Date(a.scheduledTime));
+      setReminders(parsedReminders);
 
-        // Lọc các dòng RSVP dùng riêng cho mục đích ghi chép sức khỏe (status = sickness_log)
-        const logs = rsvps
-          .filter(r => r.status === 'sickness_log')
-          .map(r => ({
-            id: r.id,
-            date: r.created_at ? r.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-            symptomType: r.guest_name,
-            notes: r.wish,
-            icon: r.side || '🤒'
-          }));
+      // Lọc các dòng RSVP dùng riêng cho mục đích ghi chép sức khỏe (status = sickness_log)
+      const logs = rsvps
+        .filter(r => r.status === 'sickness_log')
+        .map(r => ({
+          id: r.id,
+          date: r.created_at ? r.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+          symptomType: r.guest_name,
+          notes: r.wish,
+          icon: r.side || '🤒'
+        }));
 
-        // Kiểm tra xem đã từng khởi tạo dữ liệu mẫu chưa bằng cách tìm nhãn khởi tạo đặc biệt
-        const isInitialized = rsvps.some(r => r.status === 'sickness_log_initialized');
+      // Kiểm tra xem đã từng khởi tạo dữ liệu mẫu chưa bằng cách tìm nhãn khởi tạo đặc biệt
+      const isInitialized = rsvps.some(r => r.status === 'sickness_log_initialized');
 
-        // Tự động gắn cờ khởi tạo nếu đã có sẵn dữ liệu ốm để tránh re-seed khi xóa sạch sau này
-        if (logs.length > 0 && !isInitialized) {
-          supabase.db.saveRSVP('default', {
-            guest_name: 'Sổ Tay Sức Khỏe',
-            status: 'sickness_log_initialized',
+      // Tự động gắn cờ khởi tạo nếu đã có sẵn dữ liệu ốm để tránh re-seed khi xóa sạch sau này
+      if (logs.length > 0 && !isInitialized) {
+        supabase.db.saveRSVP('default', {
+          guest_name: 'Sổ Tay Sức Khỏe',
+          status: 'sickness_log_initialized',
+          guest_count: 0,
+          side: '🩺',
+          wish: 'Hệ thống sổ tay sức khỏe đã được tự động gắn cờ khởi tạo.'
+        });
+      }
+
+      if (logs.length === 0 && !isInitialized) {
+        // Lưu cờ khởi tạo hệ thống lên cơ sở dữ liệu để tránh tự nạp lại sau này khi người dùng xóa hết
+        await supabase.db.saveRSVP('default', {
+          guest_name: 'Sổ Tay Sức Khỏe',
+          status: 'sickness_log_initialized',
+          guest_count: 0,
+          side: '🩺',
+          wish: 'Hệ thống sổ tay sức khỏe đã được khởi tạo lần đầu thành công.'
+        });
+
+        // Nếu database chưa có dữ liệu nào (ví dụ lần đầu cài đặt), tự động nạp dữ liệu mẫu lên Cloud để đồng bộ
+        const defaultLogs = [
+          {
+            guest_name: 'Sốt đau đầu nhẹ',
+            status: 'sickness_log',
             guest_count: 0,
-            side: '🩺',
-            wish: 'Hệ thống sổ tay sức khỏe đã được tự động gắn cờ khởi tạo.'
-          });
-        }
-
-        if (logs.length === 0 && !isInitialized) {
-          // Lưu cờ khởi tạo hệ thống lên cơ sở dữ liệu để tránh tự nạp lại sau này khi người dùng xóa hết
-          await supabase.db.saveRSVP('default', {
-            guest_name: 'Sổ Tay Sức Khỏe',
-            status: 'sickness_log_initialized',
+            side: '🌡️',
+            wish: 'Thời tiết giao mùa nóng lạnh thất thường dẫn đến sốt đau đầu. Anh đã chuẩn bị sẵn nước gừng ấm rồi đó.',
+            created_at: '2026-04-05T00:00:00.000Z'
+          },
+          {
+            guest_name: 'Cảm lạnh đi mưa',
+            status: 'sickness_log',
             guest_count: 0,
-            side: '🩺',
-            wish: 'Hệ thống sổ tay sức khỏe đã được khởi tạo lần đầu thành công.'
-          });
-
-          // Nếu database chưa có dữ liệu nào (ví dụ lần đầu cài đặt), tự động nạp dữ liệu mẫu lên Cloud để đồng bộ
-          const defaultLogs = [
-            {
-              guest_name: 'Sốt đau đầu nhẹ',
-              status: 'sickness_log',
-              guest_count: 0,
-              side: '🌡️',
-              wish: 'Thời tiết giao mùa nóng lạnh thất thường dẫn đến sốt đau đầu. Anh đã chuẩn bị sẵn nước gừng ấm rồi đó.',
-              created_at: '2026-04-05T00:00:00.000Z'
-            },
-            {
-              guest_name: 'Cảm lạnh đi mưa',
-              status: 'sickness_log',
-              guest_count: 0,
-              side: '🤧',
-              wish: 'Đi chơi Valentine dính mưa phùn lạnh mà không chịu mặc thêm áo khoác dày. Phạt bé tự giác giữ ấm nha!',
-              created_at: '2026-02-14T00:00:00.000Z'
-            },
-            {
-              guest_name: 'Viêm họng ho khan',
-              status: 'sickness_log',
-              guest_count: 0,
-              side: '😷',
-              wish: 'Nói nhiều và uống nước đá lạnh đợt đầu đông quá nha! Lần sau phải uống trà gừng bảo vệ cổ họng nghe chưa.',
-              created_at: '2025-11-20T00:00:00.000Z'
-            },
-            {
-              guest_name: 'Kiệt sức mệt mỏi',
-              status: 'sickness_log',
-              guest_count: 0,
-              side: '😴',
-              wish: 'Áp lực học tập/công việc nhiều dẫn đến kiệt sức. Anh luôn bên cạnh và ôm bé thật chặt nhé! ❤️',
-              created_at: '2025-09-15T00:00:00.000Z'
-            }
-          ];
-
-          const uploadedLogs = [];
-          for (const item of defaultLogs) {
-            const res = await supabase.db.saveRSVP('default', item);
-            if (res.data) {
-              uploadedLogs.push({
-                id: res.data.id,
-                date: item.created_at.split('T')[0],
-                symptomType: res.data.guest_name,
-                notes: res.data.wish,
-                icon: res.data.side || '🤒'
-              });
-            }
+            side: '🤧',
+            wish: 'Đi chơi Valentine dính mưa phùn lạnh mà không chịu mặc thêm áo khoác dày. Phạt bé tự giác giữ ấm nha!',
+            created_at: '2026-02-14T00:00:00.000Z'
+          },
+          {
+            guest_name: 'Viêm họng ho khan',
+            status: 'sickness_log',
+            guest_count: 0,
+            side: '😷',
+            wish: 'Nói nhiều và uống nước đá lạnh đợt đầu đông quá nha! Lần sau phải uống trà gừng bảo vệ cổ họng nghe chưa.',
+            created_at: '2025-11-20T00:00:00.000Z'
+          },
+          {
+            guest_name: 'Kiệt sức mệt mỏi',
+            status: 'sickness_log',
+            guest_count: 0,
+            side: '😴',
+            wish: 'Áp lực học tập/công việc nhiều dẫn đến kiệt sức. Anh luôn bên cạnh và ôm bé thật chặt nhé! ❤️',
+            created_at: '2025-09-15T00:00:00.000Z'
           }
-          uploadedLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
-          setSicknessLogs(uploadedLogs);
-        } else {
-          // Tự động nhận diện và dọn dẹp các bản ghi bị trùng lặp (trùng symptom, notes, và date)
-          const uniqueLogsMap = new Map();
-          const duplicatesToDelete = [];
+        ];
 
-          logs.forEach(log => {
-            const key = `${log.symptomType}-${log.notes}-${log.date}`;
-            if (uniqueLogsMap.has(key)) {
-              duplicatesToDelete.push(log.id);
-            } else {
-              uniqueLogsMap.set(key, log);
-            }
-          });
-
-          const uniqueLogs = Array.from(uniqueLogsMap.values());
-          uniqueLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
-          setSicknessLogs(uniqueLogs);
-
-          // Thực hiện xóa ngầm các bản ghi trùng lặp trên cơ sở dữ liệu
-          if (duplicatesToDelete.length > 0) {
-            console.log(`🧹 Phát hiện và tự động dọn dẹp ${duplicatesToDelete.length} bản ghi sức khỏe trùng lặp...`);
-            duplicatesToDelete.forEach(id => {
-              supabase.db.deleteRSVP(id).catch(err => {
-                console.error('Failed to auto-clean duplicate sickness log:', err);
-              });
+        const uploadedLogs = [];
+        for (const item of defaultLogs) {
+          const res = await supabase.db.saveRSVP('default', item);
+          if (res.data) {
+            uploadedLogs.push({
+              id: res.data.id,
+              date: item.created_at.split('T')[0],
+              symptomType: res.data.guest_name,
+              notes: res.data.wish,
+              icon: res.data.side || '🤒'
             });
           }
         }
-      } catch (err) {
-        console.error('Failed to sync sickness logs from database:', err);
-      } finally {
-        setLoadingLogs(false);
-      }
-    };
+        uploadedLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setSicknessLogs(uploadedLogs);
+      } else {
+        // Tự động nhận diện và dọn dẹp các bản ghi bị trùng lặp (trùng symptom, notes, và date)
+        const uniqueLogsMap = new Map();
+        const duplicatesToDelete = [];
 
+        logs.forEach(log => {
+          const key = `${log.symptomType}-${log.notes}-${log.date}`;
+          if (uniqueLogsMap.has(key)) {
+            duplicatesToDelete.push(log.id);
+          } else {
+            uniqueLogsMap.set(key, log);
+          }
+        });
+
+        const uniqueLogs = Array.from(uniqueLogsMap.values());
+        uniqueLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setSicknessLogs(uniqueLogs);
+
+        // Thực hiện xóa ngầm các bản ghi trùng lặp trên cơ sở dữ liệu
+        if (duplicatesToDelete.length > 0) {
+          console.log(`🧹 Phát hiện và tự động dọn dẹp ${duplicatesToDelete.length} bản ghi sức khỏe trùng lặp...`);
+          duplicatesToDelete.forEach(id => {
+            supabase.db.deleteRSVP(id).catch(err => {
+              console.error('Failed to auto-clean duplicate sickness log:', err);
+            });
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync sickness logs from database:', err);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  useEffect(() => {
     fetchLogs();
     const refreshInterval = setInterval(fetchLogs, 90000); // 1.5 phút quét một lần để cập nhật lời nhắc từ xa
     return () => clearInterval(refreshInterval);
   }, []);
+
+  // Tính năng Xuất File (Export Backup)
+  const handleExportBackup = () => {
+    try {
+      const backupData = {
+        type: "welove_sickness_reminders_backup",
+        version: "1.0.0",
+        date: new Date().toISOString().split('T')[0],
+        weLoveSicknessLogs: sicknessLogs,
+        weLoveReminders: reminders
+      };
+      
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `sao_luu_so_tay_suc_khoe_${backupData.date}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      alert('Xuất file sao lưu thành công! 📤');
+    } catch (err) {
+      console.error('Failed to export backup:', err);
+      alert('Không thể xuất file sao lưu. Vui lòng thử lại!');
+    }
+  };
+
+  // Tính năng Nhập File (Import/Restore Backup)
+  const handleImportBackup = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        
+        // Kiểm tra tính hợp lệ (Validation)
+        if (!data || data.type !== "welove_sickness_reminders_backup") {
+          alert("Lỗi: File tải lên không đúng định dạng sao lưu của WeLove! ❌");
+          return;
+        }
+        
+        // Hộp thoại xác nhận gộp dữ liệu
+        const isConfirmed = window.confirm(
+          "Bạn có chắc chắn muốn nhập dữ liệu từ file này? Dữ liệu cũ sẽ được gộp chung vào thiết bị."
+        );
+        if (!isConfirmed) return;
+        
+        const incomingLogs = data.weLoveSicknessLogs || [];
+        const incomingReminders = data.weLoveReminders || [];
+        
+        // Gộp dữ liệu thông minh (Merge): Lọc bỏ các trùng lặp dựa trên id
+        const newLogs = incomingLogs.filter(
+          inc => !sicknessLogs.some(exist => exist.id === inc.id)
+        );
+        const newRems = incomingReminders.filter(
+          inc => !reminders.some(exist => exist.id === inc.id)
+        );
+        
+        if (newLogs.length === 0 && newRems.length === 0) {
+          alert("Không có dữ liệu mới nào cần nhập! (Tất cả dữ liệu đã tồn tại trên thiết bị) ℹ️");
+          return;
+        }
+        
+        setLoadingLogs(true);
+        
+        let successCountLogs = 0;
+        let successCountRems = 0;
+        
+        // Thực hiện lưu dữ liệu đã gộp vào Database / Local Storage
+        for (const log of newLogs) {
+          try {
+            const mappedLog = {
+              id: log.id,
+              guest_name: log.symptomType,
+              status: 'sickness_log',
+              guest_count: 0,
+              side: log.icon || '🤒',
+              wish: log.notes || '',
+              created_at: log.date ? new Date(log.date + 'T12:00:00.000Z').toISOString() : new Date().toISOString()
+            };
+            await supabase.db.saveRSVP('default', mappedLog);
+            successCountLogs++;
+          } catch (err) {
+            console.error('Failed to import sickness log:', log, err);
+          }
+        }
+        
+        for (const rem of newRems) {
+          try {
+            const mappedRem = {
+              id: rem.id,
+              guest_name: rem.title,
+              status: 'scheduled_reminder',
+              guest_count: rem.isSent ? 1 : 0,
+              side: rem.scheduledTime,
+              wish: rem.message || '',
+              created_at: rem.createdAt || new Date().toISOString()
+            };
+            await supabase.db.saveRSVP('default', mappedRem);
+            successCountRems++;
+          } catch (err) {
+            console.error('Failed to import reminder:', rem, err);
+          }
+        }
+        
+        // Tải lại dữ liệu sau khi nhập thành công
+        await fetchLogs();
+        
+        alert(`Nhập dữ liệu thành công! 🎉\n- Đã nhập: ${successCountLogs} đợt ốm\n- Đã nhập: ${successCountRems} lời nhắc`);
+      } catch (err) {
+        console.error('Failed to parse backup JSON:', err);
+        alert('Lỗi: File JSON bị hỏng hoặc không hợp lệ! ❌');
+      } finally {
+        event.target.value = '';
+        setLoadingLogs(false);
+      }
+    };
+    
+    reader.readAsText(file);
+  };
 
   // Năm lọc mặc định (Năm hiện tại hoặc Tất cả)
   const [selectedYear, setSelectedYear] = useState('Tất cả');
@@ -1526,6 +1655,25 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
           box-shadow: 0 4px 10px rgba(225, 29, 72, 0.15);
         }
 
+        .health-backup-btn {
+          font-size: 0.8rem;
+          padding: 0.4rem 0.65rem;
+          border-radius: 8px;
+          border: 1px solid var(--border-color);
+          background: var(--bg-secondary);
+          color: var(--text-primary);
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          transition: all 0.2s ease;
+        }
+        .health-backup-btn:hover {
+          background: var(--bg-tertiary);
+          border-color: var(--text-muted);
+        }
+
         /* Timeline styling */
         .health-timeline-title {
           font-size: 1.1rem;
@@ -2302,27 +2450,53 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
         <div className="health-timeline-title">
           <span>📅 Lịch Sử Các Đợt Ốm {selectedYear === 'Tất cả' ? '(Tất cả)' : `(Năm ${selectedYear})`}</span>
           {canEdit && (
-            <button 
-              className="btn btn-primary" 
-              onClick={() => setIsModalOpen(true)}
-              style={{
-                marginLeft: 'auto',
-                fontSize: '0.85rem',
-                padding: '0.4rem 0.8rem',
-                borderRadius: '10px',
-                background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
-                border: 'none',
-                color: '#fff',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                boxShadow: '0 4px 10px rgba(225, 29, 72, 0.15)'
-              }}
-            >
-              <span>Ghi nhận mới 📝</span>
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                className="health-backup-btn"
+                onClick={handleExportBackup}
+                title="Xuất dữ liệu Sổ tay sức khỏe và Lời nhắc ra file JSON"
+              >
+                <span>📤 Xuất Sao Lưu</span>
+              </button>
+              
+              <button 
+                type="button" 
+                className="health-backup-btn"
+                onClick={() => fileInputRef.current?.click()}
+                title="Nhập dữ liệu từ file JSON sao lưu"
+              >
+                <span>📥 Nhập Sao Lưu</span>
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImportBackup} 
+                accept=".json" 
+                style={{ display: 'none' }} 
+              />
+
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setIsModalOpen(true)}
+                style={{
+                  fontSize: '0.85rem',
+                  padding: '0.4rem 0.8rem',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #e11d48 0%, #be123c 100%)',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  boxShadow: '0 4px 10px rgba(225, 29, 72, 0.15)'
+                }}
+              >
+                <span>Ghi nhận mới 📝</span>
+              </button>
+            </div>
           )}
         </div>
 
