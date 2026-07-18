@@ -171,6 +171,14 @@ export default function App() {
     setCurrentView('memory');
   };
 
+  const getDaysTogether = () => {
+    const startDate = new Date('2025-09-03T00:00:00');
+    const today = new Date();
+    const timeDiff = today.getTime() - startDate.getTime();
+    return Math.floor(timeDiff / (1000 * 3600 * 24));
+  };
+  const days = getDaysTogether();
+
   const isCouple = user && ALLOWED_COUPLE_EMAILS.includes(user.email);
 
   return (
@@ -184,15 +192,22 @@ export default function App() {
         </div>
         
         <div className="nav-actions">
+          {user && isCouple && (
+            <div className="welove-widget" title={`Ngày bên nhau từ 03/09/2025: ${days} ngày`}>
+              <span className="welove-widget-heart">❤️</span>
+              <span className="welove-widget-days">{days} ngày</span>
+            </div>
+          )}
+
           <ThemeToggle />
           
-          {user && isCouple && ALLOWED_COUPLE_EMAILS[0] === user.email && (
+          {user && isCouple && (
             <button 
               onClick={() => setCurrentView(prev => prev === 'memory' ? 'admin' : 'memory')} 
               className="btn-logout"
-              style={{ padding: '0.55rem 1rem', fontSize: '0.85rem' }}
+              style={{ padding: '0.55rem 1.15rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.25rem', borderRadius: '50px' }}
             >
-              {currentView === 'memory' ? '📊 Quản lý' : '❤️ Kỷ niệm'}
+              {currentView === 'memory' ? '⚙️ Cài đặt' : '❤️ Kỷ niệm'}
             </button>
           )}
           
@@ -264,7 +279,7 @@ export default function App() {
       <footer>
         <p>© 2026 Linh Tuấn ❤️ Ngô Minh</p>
         <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: 'var(--text-muted)' }}>
-          Phiên bản v1.5.8 •{' '}
+          Phiên bản v1.5.9 •{' '}
           <button 
             onClick={handleCheckUpdate} 
             className="btn-update-check" 

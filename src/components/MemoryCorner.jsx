@@ -2313,68 +2313,65 @@ export default function MemoryCorner({ user, viewMode = 'memory', onBack }) {
       ) : (
         /* STANDARD VIEW */
         <>
-          <div className="memory-card">
-        {/* Floating Play/Pause Music Button */}
-        <button 
-          className={`music-toggle-btn ${isPlaying ? 'playing' : ''}`} 
-          onClick={togglePlay} 
-          title={isPlaying ? "Tạm dừng nhạc" : "Phát nhạc lãng mạn"}
-        >
-          {isPlaying ? '🎵' : '🔇'}
-        </button>
-
-        {/* Floating Test Notification Button */}
-        <button 
-          className="notification-test-btn" 
-          onClick={triggerLocalNotification} 
-          title="Nhận thông báo yêu thương thử nghiệm"
-        >
-          🔔
-        </button>
-
-        <div className="heart-pulsing" title="Click me for a surprise!">💝</div>
-        
-        <h2 className="memory-title">Kỷ Niệm Tình Yêu</h2>
-        <p className="memory-subtitle">Tuấn ❤️ Minh - Hành trình gieo bình yên, hái hạnh phúc</p>
-        
-        <div className="days-counter-box">
-          <div className="days-number">{days}</div>
-          <div className="days-label">Ngày Bên Nhau</div>
-        </div>
-
-        <div className="milestone-date">
-          📅 Cột mốc khởi đầu: 03/09/2025
-        </div>
-
-        {/* Quotes Board */}
-        <div 
-          className="quote-container" 
-          onClick={(e) => e.stopPropagation()}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          style={{ 
-            cursor: isDragging ? 'grabbing' : 'grab'
-          }}
-          title="Vuốt trái/phải để chuyển câu"
-        >
-          <button className="quote-nav-btn prev" onClick={prevQuote} disabled={isTransitioning}>‹</button>
-          
-          <div 
-            className={`quote-text-wrapper ${animClass}`}
-            style={{
-              transform: isDragging ? `translateX(${touchTranslation}px) rotateY(${touchTranslation / 140 * -45}deg)` : 'translateX(0) rotateY(0)',
-              transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease',
-              opacity: isDragging ? Math.max(0.2, 1 - Math.abs(touchTranslation) / 180) : 1
-            }}
+          {/* Floating Play/Pause Music Button */}
+          <button 
+            className={`music-toggle-btn ${isPlaying ? 'playing' : ''}`} 
+            onClick={togglePlay} 
+            title={isPlaying ? "Tạm dừng nhạc" : "Phát nhạc lãng mạn"}
           >
-            <div className="quote-chinese">{LOVE_QUOTES[quoteIdx].cn}</div>
-            <div className="quote-vietnamese">{LOVE_QUOTES[quoteIdx].vi}</div>
+            {isPlaying ? '🎵' : '🔇'}
+          </button>
+
+          {/* Floating Test Notification Button */}
+          <button 
+            className="notification-test-btn" 
+            onClick={triggerLocalNotification} 
+            title="Nhận thông báo yêu thương thử nghiệm"
+          >
+            🔔
+          </button>
+
+          {/* Góc Lời Yêu Thương Card */}
+          <div className="health-card quote-card" onClick={(e) => e.stopPropagation()} style={{ marginTop: 0 }}>
+            <div className="health-title-box">
+              <span style={{ fontSize: '1.8rem' }}>💖</span>
+              <h3 className="health-title" style={{ fontFamily: 'Outfit, sans-serif', color: '#e11d48' }}>Góc Lời Yêu Thương</h3>
+            </div>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0 0 1.25rem 0', lineHeight: '1.4' }}>
+              Vuốt trái/phải hoặc click mũi tên để đọc những lời chúc ngọt ngào dành riêng cho hai đứa mình
+            </p>
+
+            {/* Quotes Board */}
+            <div 
+              className="quote-container" 
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              style={{ 
+                cursor: isDragging ? 'grabbing' : 'grab',
+                marginTop: '1rem',
+                position: 'relative'
+              }}
+              title="Vuốt trái/phải để chuyển câu"
+            >
+              <button className="quote-nav-btn prev" onClick={prevQuote} disabled={isTransitioning}>‹</button>
+              
+              <div 
+                className={`quote-text-wrapper ${animClass}`}
+                style={{
+                  transform: isDragging ? `translateX(${touchTranslation}px) rotateY(${touchTranslation / 140 * -45}deg)` : 'translateX(0) rotateY(0)',
+                  transition: isDragging ? 'none' : 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease',
+                  opacity: isDragging ? Math.max(0.2, 1 - Math.abs(touchTranslation) / 180) : 1
+                }}
+              >
+                <div className="quote-chinese">{LOVE_QUOTES[quoteIdx].cn}</div>
+                <div className="quote-vietnamese">{LOVE_QUOTES[quoteIdx].vi}</div>
+              </div>
+              
+              <button className="quote-nav-btn next" onClick={nextQuote} disabled={isTransitioning}>›</button>
+            </div>
           </div>
-          
-          <button className="quote-nav-btn next" onClick={nextQuote} disabled={isTransitioning}>›</button>
-        </div>
-      </div>
 
       {/* NEW HEALTH TRACKER CARD */}
       <div className="health-card" onClick={(e) => e.stopPropagation()}>
