@@ -221,47 +221,6 @@ a:hover {
   gap: 1.25rem;
 }
 
-.welove-widget {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
-  border: 1px solid rgba(244, 63, 94, 0.25);
-  padding: 0.4rem 0.9rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #e11d48;
-  margin-right: 0.5rem;
-  box-shadow: 0 4px 10px rgba(244, 63, 94, 0.05);
-  transition: all 0.3s ease;
-  cursor: default;
-}
-
-[data-theme='dark'] .welove-widget {
-  color: #fda4af;
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(236, 72, 153, 0.1) 100%);
-  border: 1px solid rgba(244, 63, 94, 0.3);
-}
-
-.welove-widget:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 12px rgba(244, 63, 94, 0.15);
-}
-
-.welove-widget-heart {
-  animation: widgetHeartBeat 1.4s infinite cubic-bezier(0.25, 0.8, 0.25, 1);
-  display: inline-block;
-}
-
-@keyframes widgetHeartBeat {
-  0% { transform: scale(1); }
-  14% { transform: scale(1.2); }
-  28% { transform: scale(1); }
-  42% { transform: scale(1.15); }
-  70% { transform: scale(1); }
-}
-
 /* Buttons */
 .btn {
   display: inline-flex;
